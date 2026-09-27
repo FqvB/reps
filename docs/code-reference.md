@@ -193,6 +193,18 @@ Grouping, sorting and copy for the session log (F8); values in, strings out.
 ## Reps/Log/SessionLog.swift
 - `SessionLog.delete(_:in:clipFiles:) throws`: deletes a finished session (cascade to results and shots), saves, then `removeClips(sessionID:)`; throws `SessionLogError.notFinished` for an active one
 
+## Reps/Library/LibraryFilter.swift
+Library filter model (F15, §5.3b); tags and everything else are filtered in memory (Q23).
+- `LibraryClip`: plain copy of a ShotRecord with a clip (id, timestamp, club, tags, favourite, tempo, file name, session id/title/start, angle)
+- `LibraryMonth(year:month:)`, `init(_:calendar:)`: month filter value, Comparable
+- `LibraryFilter`: club, angle, month, sessionID, tags (all required), favouritesOnly, searchText; `hasChipFilters`; `matches(_:calendar:locale:)` ANDs every set filter and every search word (club, angle, tags, session title, month/weekday name)
+
+## Reps/Library/LibraryDisplay.swift
+Grid order, filter choices and tile copy (Figma 04); pure, unit-tested.
+- `LibrarySessionOption(id:title:startedAt:)`
+- `LibraryDisplay.visible(_:filter:hidden:calendar:locale:)`: filtered, newest first (ties by id), minus pending deletes
+- `countTitle`, `clubOptions(_:bag:)` (bag order, then others A–Z), `tagOptions` (most used first; also autocomplete), `monthOptions`, `sessionOptions`, `sessionTitle` ("Wedge day · Sep 16"), `monthTitle` (year only when not this year), `angleOptionTitle`, `tagChipTitle` ("fade +1"), `tileTitle` ("GW · face-on"), `tileDate` (Today/weekday/date), `tempo` ("3.1"), `tagLine`, `favouriteTarget` (false only when all are favourites), `undoMessage`
+
 ## Reps/Bag/BagCatalog.swift
 Standard clubs for the bag grid (Figma 08) and the default bag (F19); nonisolated.
 - `Group(title:clubs:)`; `groups`: Woods, Hybrids, Irons, Wedges, Putter; `allClubs`: flattened; `defaultBag`: the common 14 for onboarding (#5) to seed
@@ -357,6 +369,9 @@ In-memory store: order indexes, snapshots, delete rules (BagClub has no relation
 
 ## RepsTests/ExportTests.swift
 Export key sets, ordering (including sort-key ties), finished-only, nil omission, ISO dates (ms rounding, sub-ms and pre-epoch dates), clip file names, round trip, determinism.
+
+## RepsTests/LibraryDisplayTests.swift
+Filter AND semantics, ordering, options and tile copy (fixed UTC calendar, en_US).
 
 ## RepsTests/SessionTestSupport.swift
 - `TestClock` (1 s per read), `ClipSpy` (records clip removals), `EventLog` (collects `SessionEvent`s), `TestSaveError` (thrown by an injected `saveHook` to test save-gated cleanup)
