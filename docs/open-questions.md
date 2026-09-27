@@ -11,6 +11,7 @@ Answer inline, then move the decision to an ADR if it's architectural. Settled q
 | Q23 | Can a `#Predicate` filter on `tags: [String]` (ShotRecord/BlockResult) against the SQLite store? | #24 | Tag filtering is required (owner). Spike first in #24; if the predicate fails, use a Tag model (many-to-many) or filter in memory after the other predicates. |
 | Q25 | When the launch "resume?" prompt is declined, keep the session (`finish`) or delete it (`discard`)? | #9, #11 | Leaning: keep (finish), since ADR 0006 already saved every shot; offer delete only from the log. #8 provides both. |
 | Q26 | F2 says blocks advance automatically at target; F21 says targets are minimums and the count goes past. Should non-strict blocks auto-advance? | – (decided in #8, confirm) | #8: no. Minimums announce the target and stay; strict auto-advances (ADR 0013). Flip it in `recordShot` if the owner prefers F2 literally. |
+| Q27 | Plans list order: creation date (now), most recently done, or manual drag order? | – (#7 ships creation order) | Manual order would need a `sortOrder` on PracticePlan (schema V2). Leaning: keep creation order unless it annoys in use. |
 
 ## Resolved
 

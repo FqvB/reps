@@ -2,6 +2,7 @@
 
 - Figma: https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1
 - Theme: white/light app. The one exception is the clip detail player, which is dark and full-bleed with floating translucent pills (spec §5.3b, v8).
+  - Tokens: `Reps/UI/Theme/Theme.swift` (values read from frames 01, 02, 06, 13). Shared components live in `Reps/UI/Components/`: footer CTA, pill, chip, dashed add button, toggle row, field card, block row, undo toast. Alerts use native `.alert`.
 - Session screen: one big number and one chip, large glove-friendly tap targets (spec §2 NFR).
 
 When building a screen, use the `figma:figma-design-to-code` / `figma:figma-swiftui` skills with the frame link for that screen.

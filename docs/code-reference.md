@@ -15,8 +15,8 @@ App entry point; opens the SwiftData store and shows the root view.
 - `RepsApp`: `@main` app; builds the container with `RepsStore.makeContainer()` (fatal on failure until #29) and attaches it with `.modelContainer(_:)`
 
 ## Reps/App/RootView.swift
-Placeholder root screen until the plans list (#7) replaces it.
-- `RootView`: shows the app name
+Root TabView: Plans and Library (placeholder until #24).
+- `RootView`: tabs tinted `Theme.accent`; the Start closures are `TODO(#9)`
 
 ## Reps/Model/ModelEnums.swift
 Stored and exported enums; raw values are frozen (ADR 0012).
@@ -107,6 +107,70 @@ The session engine (spec §4, F2, F14, F16, F18, F21, F22, §6; ADR 0013). MainA
 - `setClub(_:)`, `setTags(_:)`: free sessions start a new block unless the current one is unused; planned sessions carry tags across blocks
 - `finish()`: `finished` + `endedAt`, drops unused free blocks, discards the session instead if that leaves none; `discard()`: deletes the session and, only if that save succeeds, its clips
 
+## Reps/Plans/PlanDraft.swift
+The plan editor's working copy (spec F1, F24, F28); nonisolated values, nothing persisted.
+- `BlockDraft(id:clubName:targetReps:note:)`: `repsRange` 1...999, `defaultReps` 30; `trimmedClubName`, `storedNote` (trimmed, nil if blank), `isValid`, `adjustReps(by:)` clamps
+- `RemovedBlock`: a removed block and its former index, for the undo toast; `id` is the block's
+- `PlanDraft(name:mode:isOrderMandatory:isStrictCount:blocks:)`: `Equatable` (the editor compares it to the opening draft to detect changes); `trimmedName`, `totalReps`, `canSave` (name, ≥1 block, all blocks valid)
+- `index(of:)`, `upsert(_:)` (replace by id or append), `removeBlock(id:) -> RemovedBlock?`, `restore(_:)` (old index, clamped; ignores duplicates), `moveBlocks(fromOffsets:toOffset:)` (SwiftUI move semantics without SwiftUI)
+
+## Reps/Plans/PlanSummary.swift
+Copy for plan cards and block rows; nonisolated.
+- `reps(_:mode:)` ("1 shot", "90 putts"), `blocks(_:)`, `totals(blockCount:totalReps:mode:)`, `subtitle(blockCount:totalReps:mode:isOrderMandatory:)` (adds "in order"/"any order"), `blockDetail(targetReps:note:mode:)`
+- `lastDone(_:now:calendar:locale:)`: today / weekday within 6 days / "Sep 9" / "Sep 9, 2025"; nil → placeholder "Not done yet"
+
+## Reps/Plans/ClubChoices.swift
+- `ClubChoices.names(bag:current:)`: picker names in bag order, trimmed, deduped; an off-bag current club goes last (F19)
+
+## Reps/Plans/PlanLibrary.swift
+Plan writes for the list and editor; MainActor; every write saves.
+- `draft(from:) -> PlanDraft`: blocks in `sortedBlocks` order, ids kept, nil note → ""
+- `save(_:to:in:now:) throws -> PracticePlan`: creates when `to` is nil; keeps block objects by id (results stay linked), inserts new ones with the draft id, deletes removed ones (results keep their snapshot), renumbers `order` 0..<n, trims name/club
+- `duplicate(_:in:now:) throws -> PracticePlan`: "<name> copy", new block objects in order 0..<n, no sessions
+- `delete(_:in:) throws`: sessions keep `planName` (nullify), blocks cascade
+- `lastDone(_:) -> Date?`: newest `endedAt ?? startedAt` of finished sessions, filtered in Swift (ADR 0013)
+
+## Reps/UI/Theme/Theme.swift
+Literal Figma values (docs/design.md): colours (`ink`, `secondaryText`, `accent`, `card`, `fill`, `hairline`, `sheet`, `danger`…), `Typography` (text styles where Figma matches their default size), `Spacing`, `Radius`.
+
+## Reps/UI/Components/*.swift
+Shared by every screen.
+- `PrimaryButtonStyle`: full-width green CTA, dimmed when disabled; `FooterCTA(title:isEnabled:action:accessory:)`: bottom inset with the CTA and an optional view above it (the undo toast)
+- `PillButtonStyle(kind:)`: capsule "Start" (`.onAccent` white on green, `.neutral` on `fill`)
+- `Chip(title:isSelected:action:)`: grid chip (clubs; tags later)
+- `DashedAddButton(title:font:verticalPadding:cornerRadius:action:)`: "+  New plan" / "+  Add block"
+- `ToggleRow(title:subtitle:isOn:)`, `FieldCard(label:content:)`: grey cards for switches and inputs
+- `BlockRow(clubName:detail:targetReps:)`: handle, club, detail, green target, chevron
+- `UndoToast(message:onUndo:)`, `UndoToast.duration` (5 s, §5.3c); `View.undoToastTimer(_:)` clears the bound item after the duration
+
+## Reps/UI/Plans/PracticeMode+Title.swift
+- `PracticeMode.title`: "Range", "Range + clips", "Putting"
+
+## Reps/UI/Plans/PlansView.swift
+Figma 01 Plans.
+- `PlansView(onStartPlan:onStartFreeSession:)`: `@Query` plans by `createdAt`; free-session card, plan cards (tap → editor, Start → closure), swipe Duplicate / Delete (delete asks first), "New plan"; editor in a full-screen cover; Settings is `TODO(#6)`
+- `PlanEditorTarget`: `.new` / `.edit(plan)` for the cover
+
+## Reps/UI/Plans/PlanCard.swift
+- `PlanCard(plan:onOpen:onStart:)`: name, `PlanSummary.subtitle`, last done, Start (disabled without blocks)
+- `FreeSessionCard(onStart:)`
+
+## Reps/UI/Plans/PlanEditorView.swift
+Figma 02 + 13. Edits a `PlanDraft`; only Save writes.
+- `PlanEditorView(plan:)`: nil = new plan; name, mode segments, order/strict toggles, blocks (tap → sheet, long-press drag to reorder, swipe delete → 5 s undo toast), Add block, Save plan (disabled until `canSave`); Cancel with changes → "Discard changes?"
+
+## Reps/UI/Plans/BlockEditorSheet.swift
+Figma 06.
+- `BlockEditorSheet(block:mode:title:isNew:onDone:onRemove:)`: edits a copy; club grid from the bag (`BagClub.isInBag`) plus "Other…" (custom name alert); reps stepper; note; Done hands back, Remove (existing blocks only) removes with undo
+- `ClubPicker(names:selection:onCustom:)`: 4-column chip grid
+- `RepsStepper(block:)`: ±10 big buttons, ±5/±1 pills, disabled at the 1...999 bounds
+
+## Reps/UI/Library/LibraryPlaceholderView.swift
+- `LibraryPlaceholderView`: `ContentUnavailableView` until #24
+
+## Reps/UI/PreviewData.swift
+- `PreviewData.container()` (DEBUG): in-memory store with the Figma sample bag and plans, for `#Preview`s only
+
 ## ShotDetector/ShotEvent.swift
 Output type of the ShotDetector framework (spec §4). The framework must never import AVFoundation, AVKit, UIKit, SwiftUI or CoreMedia (ADR 0010).
 - `ShotEvent(time:)`: one detected shot; `time` is the detector's estimate of when it happened (impact or ball exit), in seconds on the frame stream's clock
@@ -144,6 +208,18 @@ Free sessions: untargeted blocks, club/tag changes start blocks (in place when u
 
 ## RepsTests/SessionResumeTests.swift
 On-disk kill and resume (autosave off), newest-active lookup, resume after a strict plan ended. Also: re-owning a session fetched from another context, tags from the most recent block with no active block, advancing off a completed strict block on resume, and falling back when `activeBlockOrder` is stale.
+
+## RepsTests/PlanDraftTests.swift
+Save validity, reps clamping, notes, upsert, move semantics, remove/restore, change detection (discard alert).
+
+## RepsTests/PlanSummaryTests.swift
+Reps nouns, subtitles, block detail, "last done" formatting (en_US, UTC).
+
+## RepsTests/ClubChoicesTests.swift
+Bag order, dedupe, off-bag current club.
+
+## RepsTests/PlanLibraryTests.swift
+In-memory store: create, round trip, edit in place with renumbering, removed blocks keep result snapshots, duplicate deep copy, delete keeps sessions, last done.
 
 ## DetectorEvalTests/MLData.swift
 Locates the hitreg-ml checkout (ADR 0007).
