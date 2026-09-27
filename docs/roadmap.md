@@ -26,7 +26,7 @@ Goal: usable on the range with a tap per shot. Install on your phone and start l
 | [#6](https://github.com/FqvB/reps/issues/6) | Settings | F19, F25 | opus | – | ☐ |
 | [#7](https://github.com/FqvB/reps/issues/7) | Plans list + plan editor | F1, F18, F22, F24 | opus | – | ☑ |
 | [#8](https://github.com/FqvB/reps/issues/8) | Session engine (SessionController) | F2, F14, F16, F18, F21, F22, §6 | opus | opus | ☑ |
-| [#9](https://github.com/FqvB/reps/issues/9) | Session screen (manual counting) | F7, F14, F16 | opus | – | ☐ |
+| [#9](https://github.com/FqvB/reps/issues/9) | Session screen (manual counting) | F7, F14, F16 | opus | – | ☑ |
 | [#10](https://github.com/FqvB/reps/issues/10) | Voice output | F6, §5.7 | opus | – | ☐ |
 | [#11](https://github.com/FqvB/reps/issues/11) | Session summary + accident-proofing | F23, F28 | opus | – | ☐ |
 | [#12](https://github.com/FqvB/reps/issues/12) | Session log | F8 | opus | – | ☐ |
