@@ -28,7 +28,7 @@ Goal: usable on the range with a tap per shot. Install on your phone and start l
 | [#8](https://github.com/FqvB/reps/issues/8) | Session engine (SessionController) | F2, F14, F16, F18, F21, F22, §6 | opus | opus | ☑ |
 | [#9](https://github.com/FqvB/reps/issues/9) | Session screen (manual counting) | F7, F14, F16 | opus | – | ☑ |
 | [#10](https://github.com/FqvB/reps/issues/10) | Voice output | F6, §5.7 | opus | – | ☐ |
-| [#11](https://github.com/FqvB/reps/issues/11) | Session summary + accident-proofing | F23, F28 | opus | – | ☐ |
+| [#11](https://github.com/FqvB/reps/issues/11) | Session summary + accident-proofing | F23, F28 | opus | – | ☑ |
 | [#12](https://github.com/FqvB/reps/issues/12) | Session log | F8 | opus | – | ☐ |
 
 Suggested order: #4 → #8 → #9 + #10 → #7 → #11 → #12 → #5 → #6.
