@@ -305,7 +305,7 @@ Settings → My bag.
 
 ## Reps/UI/Library/LibraryView.swift
 Figma 04 Library tab.
-- `LibraryView(clipFiles:)`: `@Query` shots with `clipFileName != nil` by timestamp desc (the only SQL predicate, Q23); search + `LibraryFilterBar`; 2-column `LazyVGrid` of `ClipTile`; tap pushes `ClipDetailPlaceholderView`, long-press/"Select" starts bulk mode (`LibraryBulkBar`, `LibraryTagSheet`); Undo toast per bulk action; delete is hidden until the toast ends, then `LibraryEdits.delete` + thumbnail cleanup; `NoClipFiles` until #22
+- `LibraryView(clipFiles:)`: `@Query` shots with `clipFileName != nil` by timestamp desc (the only SQL predicate, Q23); search + `LibraryFilterBar`; 2-column `LazyVGrid` of `ClipTile`; tap opens `ClipDetailView` full screen (ends the undo window first); player favourite/tag edits save at once; player delete runs `LibraryEdits.delete` after the cover closes; long-press/"Select" starts bulk mode (`LibraryBulkBar`, `LibraryTagSheet`); Undo toast per bulk action; delete is hidden until the toast ends, then `LibraryEdits.delete` + thumbnail cleanup; `NoClipFiles` until #22
 - `PreviewData.libraryContainer()` (DEBUG): 8 clips without files
 
 ## Reps/UI/Library/ClipTile.swift
@@ -323,8 +323,21 @@ Figma 04 Library tab.
 ## Reps/UI/Library/LibraryBulkBar.swift
 - `LibraryBulkBar(clubs:isEnabled:favouriteTarget:onClub:onTags:onFavourite:onDelete:)`: bottom bar in bulk mode (no Figma frame)
 
-## Reps/UI/Library/ClipDetailPlaceholderView.swift
-- `ClipDetailPlaceholderView(clip:)`: `TODO(#25)` player
+## Reps/UI/Library/ClipDetailTheme.swift
+Figma 11 values: `Theme.playerPill`, `Theme.playerTrack`, `Theme.Typography.playerLabel/playerTime/playerSpeed/playerIcon/playerStep`, `ClipDetailMetrics`.
+
+## Reps/UI/Library/PlayerLayerView.swift
+- `PlayerLayerView(player:)`: `AVPlayerLayer` host, aspect fit on black, no system controls
+
+## Reps/UI/Library/ClipPlayer.swift
+- `ClipPlayer` (@Observable): `load(_:filmstripCount:)` (`.missing` for nil/missing/undecodable files), `togglePlay`, `pause`, `cycleSpeed`, `step(by:)`, `seek(to:)` (zero tolerance), `scrub(to:)`/`endScrub(at:)`, `stop`; publishes `state`, `duration`, `frameDuration`, `currentTime`, `isPlaying`, `speed`, `filmstrip` (10 frames via `AVAssetImageGenerator.images(for:)`)
+
+## Reps/UI/Library/ClipScrubber.swift
+- `ClipScrubber(player:events:)`: filmstrip with yellow playhead (drag to scrub), time, track with event marks and knob (release near a mark jumps to it), pose toggle (#27, disabled)
+
+## Reps/UI/Library/ClipDetailView.swift
+Figma 11, 15. Presented full screen by `LibraryView`.
+- `ClipDetailView(clip:tagSuggestions:onFavourite:onAddTag:onRemoveTag:onDelete:)`: ✕, ★, share (#26), more (Tags sheet, Save to Photos (#26), Delete with confirm alert), label pill, scrubber, speed / frame step / play, overlay options (#27); missing-file placeholder
 
 ## Reps/UI/Library/LibraryTheme.swift
 Figma 04 values: `Theme.Typography.filterChip/filterChipSelected/resultCount/tileTitle/tileDetail/tileTempo/tileStar/tilePlay`, `Theme.Spacing.gridGap`, `Theme.Radius.tile`, `LibraryMetrics.thumbnailHeight/playSize`
