@@ -16,7 +16,7 @@ App entry point; opens the SwiftData store and shows the root view.
 
 ## Reps/App/RootView.swift
 Root TabView (Plans, Library), the session host, and the onboarding gate.
-- `RootView`: owns one `SessionController` (made on first use); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`, reading the default camera angle from `AppSettings().cameraAngle(for:)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); voice hook is `TODO(#10)`; shows `OnboardingView(permissions: DevicePermissions())` instead of the tabs while `AppSettings.hasCompletedOnboarding` is false (the resume prompt waits for the tabs)
+- `RootView`: owns one `SessionController` (made on first use); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`, reading the default camera angle from `AppSettings().cameraAngle(for:)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); voice hook is `TODO(#10)`; shows `OnboardingView(permissions: DevicePermissions())` instead of the tabs while `AppSettings.hasCompletedOnboarding` is false (the resume prompt waits for the tabs); Library tab hosts `LibraryView` (#24)
 
 ## Reps/Model/ModelEnums.swift
 Stored and exported enums; raw values are frozen (ADR 0012).
@@ -85,6 +85,7 @@ Clip folder size/count for the Settings Storage row.
 - `ClipUsage(bytes:count:)`: `.zero`
 - `ClipStorage.clipsDirectory`: `Documents/clips` (ADR 0006 root; #22 writes clips there)
 - `ClipStorage.usage(at:fileManager:) -> ClipUsage`: sync `FileManager` enumeration of `.mov` files; call off the main actor; a missing folder is `.zero`
+- `ClipStorage.clipURL(fileName:sessionID:root:) -> URL?`: `root/<sessionID>/<fileName>`; nil unless a bare `.mov` name (no separators, control chars, leading dot)
 
 ## Reps/Settings/SettingsCopy.swift
 Copy for the Settings screen; pure, unit-tested.
@@ -193,6 +194,26 @@ Grouping, sorting and copy for the session log (F8); values in, strings out.
 ## Reps/Log/SessionLog.swift
 - `SessionLog.delete(_:in:clipFiles:) throws`: deletes a finished session (cascade to results and shots), saves, then `removeClips(sessionID:)`; throws `SessionLogError.notFinished` for an active one
 
+## Reps/Library/LibraryFilter.swift
+Library filter model (F15, §5.3b); tags and everything else are filtered in memory (Q23).
+- `LibraryClip`: plain copy of a ShotRecord with a clip (id, timestamp, club, tags, favourite, tempo, file name, session id/title/start, angle)
+- `LibraryMonth(year:month:)`, `init(_:calendar:)`: month filter value, Comparable
+- `LibraryFilter`: club, angle, month, sessionID, tags (all required), favouritesOnly, searchText; `hasChipFilters`; `matches(_:calendar:locale:)` ANDs every set filter and every search word (club, angle, tags, session title, month/weekday name)
+
+## Reps/Library/LibraryDisplay.swift
+Grid order, filter choices and tile copy (Figma 04); pure, unit-tested.
+- `LibrarySessionOption(id:title:startedAt:)`
+- `LibraryDisplay.visible(_:filter:hidden:calendar:locale:)`: filtered, newest first (ties by id), minus pending deletes
+- `countTitle`, `clubOptions(_:bag:)` (bag order, then others A–Z), `tagOptions` (most used first; also autocomplete), `monthOptions`, `sessionOptions`, `sessionTitle` ("Wedge day · Sep 16"), `monthTitle` (year only when not this year), `angleOptionTitle`, `tagChipTitle` ("fade +1"), `tileTitle` ("GW · face-on"), `tileDate` (Today/weekday/date), `tempo` ("3.1"), `tagLine`, `favouriteTarget` (false only when all are favourites), `undoMessage`
+
+## Reps/Library/LibraryEdits.swift
+Bulk library writes (F15, §5.3c).
+- `LibraryClip.init?(_: ShotRecord)`: nil without `clipFileName`; session title via `SessionDisplay.title`, angle from the session (`.none` without one)
+- `ShotSnapshot`, `LibraryUndo(message:kind:)` (`.restore([ShotSnapshot])` / `.delete(Set<UUID>)`)
+- `LibraryEdits.setClub/addTag/removeTag/setFavourite(... on:in:) throws -> [ShotSnapshot]`: save, or roll back and rethrow; blank club/tag is a no-op (`[]`)
+- `restore(_:in:)`: writes snapshots back, skipping deleted shots
+- `delete(ids:in:clipFiles:) throws -> [UUID]`: deletes the rows, saves, then `removeClip` per clip file (ADR 0013 order); block counters untouched
+
 ## Reps/Bag/BagCatalog.swift
 Standard clubs for the bag grid (Figma 08) and the default bag (F19); nonisolated.
 - `Group(title:clubs:)`; `groups`: Woods, Hybrids, Irons, Wedges, Putter; `allClubs`: flattened; `defaultBag`: the common 14 for onboarding (#5) to seed
@@ -213,7 +234,7 @@ Bag writes for Settings and onboarding (F19); every write saves.
 - `seedDefaultBag(in:) throws -> Bool`: inserts `BagCatalog.defaultBag` in catalog order only when there are no BagClub rows at all; false otherwise (idempotent, #5)
 
 ## Reps/UI/Theme/Theme.swift
-Literal Figma values (docs/design.md): colours (`ink`, `secondaryText`, `accent`, `accentDeep`, `card`, `fill`, `hairline`, `sheet`, `danger`, `illustration` (0x8A9A84), `ballBox` (0xE6D35A)…), `Typography` (text styles where Figma matches their default size), `Spacing`, `Radius`.
+Literal Figma values (docs/design.md): colours (`ink`, `secondaryText`, `accent`, `accentDeep`, `card`, `fill`, `hairline`, `sheet`, `danger`, `thumbnail` (0x8A9A84), `favourite` (0xE6D35A), `illustration` (0x8A9A84), `ballBox` (0xE6D35A)…), `Typography` (text styles where Figma matches their default size), `Spacing`, `Radius`.
 
 ## Reps/UI/Components/*.swift
 Shared by every screen.
@@ -271,8 +292,31 @@ Settings → My bag.
 - `BagSettingsView`: hosts `BagEditorView` in a `ScrollView`; toolbar "Reorder" opens `BagOrderSheet`
 - `BagOrderSheet`: `List` in edit mode over the in-bag clubs, `onMove` writes `BagLibrary.move`
 
-## Reps/UI/Library/LibraryPlaceholderView.swift
-- `LibraryPlaceholderView`: `ContentUnavailableView` until #24
+## Reps/UI/Library/LibraryView.swift
+Figma 04 Library tab.
+- `LibraryView(clipFiles:)`: `@Query` shots with `clipFileName != nil` by timestamp desc (the only SQL predicate, Q23); search + `LibraryFilterBar`; 2-column `LazyVGrid` of `ClipTile`; tap pushes `ClipDetailPlaceholderView`, long-press/"Select" starts bulk mode (`LibraryBulkBar`, `LibraryTagSheet`); Undo toast per bulk action; delete is hidden until the toast ends, then `LibraryEdits.delete` + thumbnail cleanup; `NoClipFiles` until #22
+- `PreviewData.libraryContainer()` (DEBUG): 8 clips without files
+
+## Reps/UI/Library/ClipTile.swift
+- `ClipTile(clip:isSelecting:isSelected:)`: thumb (★, play mark, selection check), club · angle, date · tempo, tags; missing file shows `video.slash`
+
+## Reps/UI/Library/ClipThumbnails.swift
+- `ClipThumbnails` (actor, `.shared`): `image(shotID:clipURL:) async -> UIImage?` memory → `Caches/thumbnails/<id>.jpg` → middle frame via `AVAssetImageGenerator` (max 480 px), cached; nil when the file is missing; `remove(_:)` drops both caches
+
+## Reps/UI/Library/LibraryFilterBar.swift
+- `LibraryFilterBar(filter:clubs:tags:months:sessions:)`: Figma 04 chips as menus (Club, Angle, Date, ★ toggle, Tag multi-toggle, Session) + Clear
+
+## Reps/UI/Library/LibraryTagSheet.swift
+- `LibraryTagSheet(selectedCount:onSelection:suggestions:onAdd:onRemove:)`: add (field + history suggestions) or remove one tag; applies and closes
+
+## Reps/UI/Library/LibraryBulkBar.swift
+- `LibraryBulkBar(clubs:isEnabled:favouriteTarget:onClub:onTags:onFavourite:onDelete:)`: bottom bar in bulk mode (no Figma frame)
+
+## Reps/UI/Library/ClipDetailPlaceholderView.swift
+- `ClipDetailPlaceholderView(clip:)`: `TODO(#25)` player
+
+## Reps/UI/Library/LibraryTheme.swift
+Figma 04 values: `Theme.Typography.filterChip/filterChipSelected/resultCount/tileTitle/tileDetail/tileTempo/tileStar/tilePlay`, `Theme.Spacing.gridGap`, `Theme.Radius.tile`, `LibraryMetrics.thumbnailHeight/playSize`
 
 ## Reps/UI/Onboarding/OnboardingView.swift
 Figma 07–09 (F19, F20). Shown by `RootView` until onboarding completes.
@@ -357,6 +401,15 @@ In-memory store: order indexes, snapshots, delete rules (BagClub has no relation
 
 ## RepsTests/ExportTests.swift
 Export key sets, ordering (including sort-key ties), finished-only, nil omission, ISO dates (ms rounding, sub-ms and pre-epoch dates), clip file names, round trip, determinism.
+
+## RepsTests/LibraryDisplayTests.swift
+Filter AND semantics, ordering, options and tile copy (fixed UTC calendar, en_US).
+
+## RepsTests/LibraryEditsTests.swift
+Bulk edits, undo snapshots and delete order against an in-memory store with `ClipSpy`.
+
+## RepsTests/ClipStorageTests.swift
+Clip usage summing; `ClipURLTests`: valid clip path resolution, unsafe names rejected.
 
 ## RepsTests/SessionTestSupport.swift
 - `TestClock` (1 s per read), `ClipSpy` (records clip removals), `EventLog` (collects `SessionEvent`s), `TestSaveError` (thrown by an injected `saveHook` to test save-gated cleanup)
