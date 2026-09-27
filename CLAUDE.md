@@ -56,7 +56,23 @@ Small fixes and docs changes don't need the plan step. Use judgement, and keep t
 | Detector code or thresholds | `Unit` for the detector + `DetectorEval` (footage) |
 | Session flow, accident-proofing | the relevant `UI` tests only |
 
-- Filter with `-only-testing:<Target>/<Suite>` instead of running everything. Exact commands go here once #1 (scaffold) lands.
+- Filter with `-only-testing:<Target>/<Suite>` instead of running everything. Commands (run from the repo root):
+
+```sh
+DEST='platform=iOS Simulator,name=iPhone 17 Pro,OS=latest'
+# build
+xcodebuild build -project Reps.xcodeproj -scheme Reps -destination "$DEST" -quiet
+# Unit, filtered to a suite
+xcodebuild test -project Reps.xcodeproj -scheme Reps -testPlan Unit -destination "$DEST" -only-testing:RepsTests/RepsStoreTests
+# DetectorEval (footage from ../hitreg-ml; override with TEST_RUNNER_REPS_ML_DIR=/path, skips if not found)
+xcodebuild test -project Reps.xcodeproj -scheme Reps -testPlan DetectorEval -destination "$DEST"
+# format + lint
+xcrun swift-format format --in-place --recursive --parallel Reps ShotDetector RepsTests DetectorEvalTests
+xcrun swift-format lint --strict --recursive --parallel Reps ShotDetector RepsTests DetectorEvalTests
+```
+
+- Env vars reach simulator tests only with the `TEST_RUNNER_` prefix (it's stripped), e.g. `TEST_RUNNER_REPS_ML_DIR`.
+- Source files go in the synced folders (`Reps/`, `ShotDetector/`, `RepsTests/`, `DetectorEvalTests/`); never edit `project.pbxproj` to add files. Signing: put `DEVELOPMENT_TEAM = …` in `Config/Signing.local.xcconfig` (gitignored).
 - Only write tests for behaviour that matters: logic, state machines, math, detectors. Skip tests for pure layout.
 
 ## Code style
@@ -72,4 +88,5 @@ Small fixes and docs changes don't need the plan step. Use judgement, and keep t
 - No long AI-written descriptions, bullet lists, or summaries in commits.
 - No attribution: no `Co-Authored-By`, no `Claude-Session`, no "Generated with Claude Code" in commits or PRs.
 - PR: title same style, body is 1–3 lines plus `Closes #N`.
+- Until the MVP ships, auto-merge your own PRs into `main` once local verification passes and any required review is fixed: `gh pr merge --squash --delete-branch`, then pull `main`.
 - Update `docs/roadmap.md` status when an issue closes. Add new questions to `docs/open-questions.md` and decisions to `docs/adr/`.

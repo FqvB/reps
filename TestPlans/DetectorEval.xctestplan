@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "5F0C1A2B-0002-4000-8000-000000000002",
+      "name" : "Default",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : false
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Reps.xcodeproj",
+        "identifier" : "AA0000000000000000000033",
+        "name" : "DetectorEvalTests"
+      }
+    }
+  ],
+  "version" : 1
+}

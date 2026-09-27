@@ -25,3 +25,6 @@ ml/data/
 ml/runs/
 
 .claude/settings.local.json
+
+# Local signing (DEVELOPMENT_TEAM)
+Config/Signing.local.xcconfig
