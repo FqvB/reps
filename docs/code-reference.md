@@ -16,7 +16,7 @@ App entry point; opens the SwiftData store and shows the root view.
 
 ## Reps/App/RootView.swift
 Root TabView (Plans, Library) and the session host.
-- `RootView`: owns one `SessionController` (made on first use); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); voice hook is `TODO(#10)`
+- `RootView`: owns one `SessionController` (made on first use); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`, reading the default camera angle from `AppSettings().cameraAngle(for:)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); voice hook is `TODO(#10)`
 
 ## Reps/Model/ModelEnums.swift
 Stored and exported enums; raw values are frozen (ADR 0012).
@@ -73,6 +73,24 @@ JSON export format v1 (ADR 0012); property names are the JSON keys.
 - `ExportCoding.encode(_:) throws -> Data`: pretty, sorted keys, ISO 8601 UTC with ms; no file I/O
 - `ExportCoding.decode(_:) throws -> ExportDocument`: inverse of `encode`
 - `ExportCoding.encodeDate(_:) -> String`, `ExportCoding.decodeDate(_:) throws -> Date`: millisecond-rounded ISO 8601 UTC via whole-second formatting + a spliced-in `.mmm`, avoiding `ISO8601FormatStyle`'s fractional-seconds float truncation
+
+## Reps/Settings/AppSettings.swift
+Typed UserDefaults preferences (F25); nonisolated.
+- `ClipQuality`: p1080fps60 (default), p1080fps30, p720fps30 (PLACEHOLDER, Q32); raw values persisted, never rename
+- `AppSettings(defaults:)`: `Key` (persisted UserDefaults keys), `Default` (fallback values), `angleChoices` (faceOn/downTheLine; `.none` means putting, not a choice); typed accessors for each key, sanitizing unknown or `.none` stored angles back to `Default.cameraAngle`
+- `cameraAngle(for:)`: `.none` for putting, `defaultCameraAngle` otherwise
+
+## Reps/Settings/ClipStorage.swift
+Clip folder size/count for the Settings Storage row.
+- `ClipUsage(bytes:count:)`: `.zero`
+- `ClipStorage.clipsDirectory`: `Documents/clips` (ADR 0006 root; #22 writes clips there)
+- `ClipStorage.usage(at:fileManager:) -> ClipUsage`: sync `FileManager` enumeration of `.mov` files; call off the main actor; a missing folder is `.zero`
+
+## Reps/Settings/SettingsCopy.swift
+Copy for the Settings screen; pure, unit-tested.
+- `clubCount(_:)`, `angleTitle(_:)`, `clipQualityTitle(_:)`: row copy
+- `clipUsage(_:locale:)`: nil → "Calculating…" (PLACEHOLDER); zero → "No clips yet" (PLACEHOLDER); else byte count · clip count
+- `version(info:)`: "<short> (<build>)" from the bundle's `CFBundleShortVersionString`/`CFBundleVersion`, falling back per missing part
 
 ## Reps/Persistence/RepsStore.swift
 Builds the SwiftData container for the app and tests.
@@ -140,6 +158,24 @@ Plan writes for the list and editor; MainActor; every write saves.
 - `delete(_:in:) throws`: sessions keep `planName` (nullify), blocks cascade
 - `lastDone(_:) -> Date?`: newest `endedAt ?? startedAt` of finished sessions, filtered in Swift (ADR 0013)
 
+## Reps/Bag/BagCatalog.swift
+Standard clubs for the bag grid (Figma 08) and the default bag (F19); nonisolated.
+- `Group(title:clubs:)`; `groups`: Woods, Hybrids, Irons, Wedges, Putter; `allClubs`: flattened; `defaultBag`: the common 14 for onboarding (#5) to seed
+- `trimmed(_:)`, `key(_:)`: trimmed, lowercased match key
+- `catalogIndex(of:)`, `isStandard(_:)`: catalog lookup by key
+- `insertionIndex(for:in:)`: bag position for a new/restored club — before the first later standard club, custom ones last
+
+## Reps/Bag/BagLibrary.swift
+Bag writes for Settings and onboarding (F19); every write saves.
+- `BagError`: `.emptyName`, `.duplicateName`
+- `all(in:) throws -> [BagClub]`: bag order (`sortOrder`, then `name`)
+- `club(named:in:)`: case-insensitive, trimmed lookup in an already-fetched list
+- `setInBag(_:_:in:) throws`: a chip tap; off keeps the row (spec §5.1); on for a missing name inserts one at its catalog position
+- `addCustom(_:in:) throws -> BagClub`: "Add a custom club"; restores a hidden row, throws `.duplicateName` if already in bag
+- `rename(_:to:in:) throws`: only `BagClub.name`; plan blocks and shots keep the old name (snapshots, #4); throws `.duplicateName` against other rows (case-insensitive)
+- `delete(_:in:) throws`: removes the row; plans keep referencing the old name
+- `move(fromOffsets:toOffset:in:) throws`: reorders the in-bag clubs (offsets index bag order), hidden rows renumbered after them; SwiftUI `onMove` semantics, copied from `PlanDraft.moveBlocks`
+
 ## Reps/UI/Theme/Theme.swift
 Literal Figma values (docs/design.md): colours (`ink`, `secondaryText`, `accent`, `accentDeep`, `card`, `fill`, `hairline`, `sheet`, `danger`…), `Typography` (text styles where Figma matches their default size), `Spacing`, `Radius`.
 
@@ -153,12 +189,27 @@ Shared by every screen.
 - `BlockRow(clubName:detail:targetReps:)`: handle, club, detail, green target, chevron
 - `UndoToast(message:onUndo:)`, `UndoToast.duration` (5 s, §5.3c); `View.undoToastTimer(_:)` clears the bound item after the duration
 
+## Reps/UI/Settings/SettingsTheme.swift
+Settings values from Figma 10: `Theme.Typography.settingsValue`; `Theme.Spacing.settingsLabelGap`, `settingsRowVertical`.
+
+## Reps/UI/Settings/SettingsRows.swift
+Figma 10 row components: a section label over one grey card with inset hairline dividers.
+- `SettingsSection(title:content:)`: label + card
+- `SettingsRowText(title:subtitle:)`: title (and optional subtitle) block, reused by the row types below
+- `SettingsRow(title:subtitle:value:showsChevron:)`: title left, grey value and optional chevron right
+- `SettingsToggleRow(title:subtitle:isOn:)`: same layout with a trailing `Toggle`
+- `SettingsDivider`: hairline inset to the row text
+
+## Reps/UI/Settings/SettingsView.swift
+Figma 10 Settings (F25). Pushed from the Plans toolbar.
+- `SettingsView`: Bag (My bag → `BagSettingsView`, club count), Camera (default angle and clip quality menus, save-to-Photos and record-audio toggles), Voice (announce count/tempo toggles, inert Guidance row), Storage (clip usage from `ClipStorage.usage`, computed in a detached task), About (version); `@AppStorage` bindings share `AppSettings`'s keys and defaults
+
 ## Reps/UI/Plans/PracticeMode+Title.swift
 - `PracticeMode.title`: "Range", "Range + clips", "Putting"
 
 ## Reps/UI/Plans/PlansView.swift
 Figma 01 Plans.
-- `PlansView(onStartPlan:onStartFreeSession:)`: `@Query` plans by `createdAt`; free-session card, plan cards (tap → editor, Start → closure), swipe Duplicate / Delete (delete asks first), "New plan"; editor in a full-screen cover; Settings is `TODO(#6)`
+- `PlansView(onStartPlan:onStartFreeSession:)`: `@Query` plans by `createdAt`; free-session card, plan cards (tap → editor, Start → closure), swipe Duplicate / Delete (delete asks first), "New plan"; editor in a full-screen cover; Settings pushes `SettingsView`
 - `PlanEditorTarget`: `.new` / `.edit(plan)` for the cover
 
 ## Reps/UI/Plans/PlanCard.swift
@@ -174,6 +225,15 @@ Figma 06.
 - `BlockEditorSheet(block:mode:title:isNew:onDone:onRemove:)`: edits a copy; club grid from the bag (`BagClub.isInBag`) plus "Other…" (custom name alert); reps stepper; note; Done hands back, Remove (existing blocks only) removes with undo
 - `ClubPicker(names:selection:onCustom:)`: 4-column chip grid
 - `RepsStepper(block:)`: ±10 big buttons, ±5/±1 pills, disabled at the 1...999 bounds
+
+## Reps/UI/Bag/BagEditorView.swift
+Figma 08 bag grid (F19). No title, footer or scroll view of its own; the host embeds it. Hosted by `BagSettingsView` and onboarding (#5).
+- `BagEditorView`: catalog groups (Woods, Hybrids, Irons, Wedges, Putter) as chip grids, a "Custom" group for off-catalog clubs (context menu: Rename, Delete), "Add a custom club"; every tap writes through `BagLibrary` immediately
+
+## Reps/UI/Bag/BagSettingsView.swift
+Settings → My bag.
+- `BagSettingsView`: hosts `BagEditorView` in a `ScrollView`; toolbar "Reorder" opens `BagOrderSheet`
+- `BagOrderSheet`: `List` in edit mode over the in-bag clubs, `onMove` writes `BagLibrary.move`
 
 ## Reps/UI/Library/LibraryPlaceholderView.swift
 - `LibraryPlaceholderView`: `ContentUnavailableView` until #24

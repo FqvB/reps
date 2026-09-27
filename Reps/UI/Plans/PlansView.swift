@@ -27,6 +27,7 @@ struct PlansView: View {
     @State private var editing: PlanEditorTarget?
     @State private var planToDelete: PracticePlan?
     @State private var errorMessage: String?
+    @State private var showsSettings = false
 
     var body: some View {
         NavigationStack {
@@ -58,10 +59,11 @@ struct PlansView: View {
             .navigationSubtitle(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Settings") {}  // TODO(#6): open Settings
+                    Button("Settings") { showsSettings = true }
                         .tint(Theme.accent)
                 }
             }
+            .navigationDestination(isPresented: $showsSettings) { SettingsView() }
             .fullScreenCover(item: $editing) { target in
                 PlanEditorView(plan: target.plan)
             }
