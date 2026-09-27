@@ -224,8 +224,10 @@ final class SessionController {
         session.status = .finished
         session.endedAt = now()
         session.activeBlockOrder = nil
-        save()
+        let saved = save()
         reset()
+        // Only a session that really reached the store is announced as saved (§5.7).
+        if saved { emit(.sessionSaved) }
     }
 
     func discard() {

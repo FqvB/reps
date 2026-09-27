@@ -16,7 +16,7 @@ App entry point; opens the SwiftData store and shows the root view.
 
 ## Reps/App/RootView.swift
 Root TabView (Plans, Library), the session host, and the onboarding gate.
-- `RootView`: owns one `SessionController` (made on first use); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`, reading the default camera angle from `AppSettings().cameraAngle(for:)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); voice hook is `TODO(#10)`; shows `OnboardingView(permissions: DevicePermissions())` instead of the tabs while `AppSettings.hasCompletedOnboarding` is false (the resume prompt waits for the tabs); Library tab hosts `LibraryView` (#24)
+- `RootView`: owns one `SessionController` (made on first use); creates a `SpeechAnnouncer(speaker: SystemSpeaker())`, prepares it, and registers `handle` on the controller (#10); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`, reading the default camera angle from `AppSettings().cameraAngle(for:)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); shows `OnboardingView(permissions: DevicePermissions())` instead of the tabs while `AppSettings.hasCompletedOnboarding` is false (the resume prompt waits for the tabs); Library tab hosts `LibraryView` (#24)
 
 ## Reps/Model/ModelEnums.swift
 Stored and exported enums; raw values are frozen (ADR 0012).
@@ -105,6 +105,7 @@ What the session engine tells the voice layer (#10); plain values, nonisolated.
 - `targetReached(clubName:target:isStrict:)`: done just became equal to the target; strict blocks end here
 - `blockChanged(clubName:target:done:)`: a block became active (start, resume, next, strip jump, strict auto-advance, club/tag change, −1 reopening a block)
 - `planEnded`: no block left to run; shots are ignored until a block is selected or the session ends
+- `sessionSaved`: Done saved the session; not sent when `finish()` discards or the save fails
 
 ## Reps/Session/ClipFileRemoving.swift
 - `ClipFileRemoving`: `removeClip(fileName:sessionID:)`, `removeClips(sessionID:)` for `Documents/clips/<sessionId>/`; #22 supplies the real one
@@ -146,7 +147,7 @@ The session engine (spec §4, F2, F14, F16, F18, F21, F22, §6; ADR 0013). MainA
 - `advance()`: next block (mandatory: next in order; free: next incomplete and targeted, wrapping), or `planEnded`
 - `select(_:) -> Bool`: block strip jump; false in free sessions, with mandatory order, or onto a complete strict block
 - `setClub(_:)`, `setTags(_:)`: free sessions start a new block unless the current one is unused; planned sessions carry tags across blocks
-- `finish()`: `finished` + `endedAt`, drops unused free blocks, discards the session instead if that leaves none; `discard()`: deletes the session and, only if that save succeeds, its clips
+- `finish()`: `finished` + `endedAt`, drops unused free blocks, discards the session instead if that leaves none; emits `sessionSaved` only when the closing save succeeds; `discard()`: deletes the session and, only if that save succeeds, its clips
 
 ## Reps/Session/SessionDisplay.swift
 Copy and chip states for the session screen; pure values, unit-tested.
@@ -157,6 +158,31 @@ Copy and chip states for the session screen; pure values, unit-tested.
 Numbers and copy for the session summary (Figma 12, F23); pure values, unit-tested.
 - `SummaryBlock(order:clubName:note:tags:counted:manualAdjust:target:clipCount:tempos:)`, `SummaryBar(fill:surplusFrom:)`, `SummaryRow`, `SummaryStat`, `SessionSummary(subtitle:headline:caption:rows:stats:)`
 - `SummaryDisplay.summary(planName:mode:blocks:elapsed:)`: rows by order (free sessions hide unused blocks, add tags to titles); `overall(_:mode:)` (capped %, or total count without targets); `row(_:mode:isFree:)`; `percent(_:isComplete:)` (rounded, ≤ 99 % until complete); `stats(_:)` (clips, avg tempo, Σ |manualAdjust|); `tempo(_:)`; `duration(_:)`
+
+## Reps/Voice/VoiceLines.swift
+Session event → spoken text (F6, §5.7); pure, nonisolated, English only (Q12).
+- `Phrase(text:kind:)`: `Kind` count (goes stale on a newer count) / callout (never dropped)
+- `VoiceLines.phrases(for:announceCount:) -> [Phrase]`: `sessionSaved`/`targetReached`/`strictStop`/`planEnded` line constants (all but `sessionSaved` PLACEHOLDER, Q39); `announceCount` silences only `.countChanged`; `TODO(#27)` tempo on the count
+- `count(_:)`: digits, so the synthesizer reads them as words
+- `block(clubName:target:done:)`: "9 iron. 30 reps." / "…1 rep." / untargeted "9 iron." / returning "9 iron. 12 of 30." (PLACEHOLDER, Q39)
+- `spokenClub(_:)`: `BagCatalog.key` wedge abbreviations (PW/GW/SW/LW) spelled out; everything else trimmed as stored
+
+## Reps/Voice/Speaker.swift
+- `Speaker`: the voice output seam (`SystemSpeaker` in the app, a fake in tests); `prepare()` warms the voice, `speak(_:finished:)` speaks one line and calls `finished` once unless stopped, `stop()` cuts it off without calling `finished`
+
+## Reps/Voice/SpeechAnnouncer.swift
+Turns session events into speech, one line at a time, never overlapping (F6, §5.7). MainActor (app target default).
+- `SpeechAnnouncer(speaker:settings:)`: `prepare()` forwards to the speaker; `pending`, `isSpeaking` exposed for tests
+- `handle(_:)`: reads `AppSettings.announceCount` on every call (mid-session toggle); a new count replaces any unspoken count, callouts are never dropped, the line being spoken always finishes; `sessionSaved` clears the queue and cuts in with `stop()`; never calls back into the controller (ADR 0013)
+- A `generation` counter ignores a late `finished` from a line `stop()` already cancelled
+
+## Reps/Voice/SystemSpeaker.swift
+AVSpeechSynthesizer behind `Speaker` (§5.7, §6); build-only, checked by ear on a device.
+- `SystemSpeaker`: `prepare()` sets the audio category and renders "Ready" with `write(_:toBufferCallback:)` to load the voice silently (idempotent); `speak(_:finished:)` prepares, activates audio if needed, tracks the utterance by `ObjectIdentifier`, and starts a 6 s timeout that force-stops a line that never reports back; `stop()` cancels the timeout and the synthesizer without calling `finished`
+- `AVSpeechSynthesizerDelegate` `didFinish`/`didCancel` are `nonisolated`, hop to MainActor and call `ended(_:)`, which ignores the warm-up utterance and anything `stop()` already dropped
+- Deactivates audio 0.6 s after the last line ends if nothing new started (`scheduleRelease`/`releaseAudio`)
+- `englishVoice()`: device English variant or `en-US`; prefers an installed enhanced/premium voice, excluding novelty/personal voices (Q12)
+- `VoiceAudioSession`: the only code touching the app's audio session; `configure()` sets `.playback`/`.voicePrompt`/`[.duckOthers]` once; `activate()`/`deactivate()` (the latter passes `.notifyOthersOnDeactivation`); all `try?` (voice failures never block counting); #22 revisits it (Q41)
 
 ## Reps/Plans/PlanDraft.swift
 The plan editor's working copy (spec F1, F24, F28); nonisolated values, nothing persisted.
@@ -442,10 +468,10 @@ Clip usage summing; `ClipURLTests`: valid clip path resolution, unsafe names rej
 - `TestClock` (1 s per read), `ClipSpy` (records clip removals), `EventLog` (collects `SessionEvent`s), `TestSaveError` (thrown by an injected `saveHook` to test save-gated cleanup)
 
 ## RepsTests/SessionControllerTests.swift
-Planned sessions: start, counting, minimums vs strict, mandatory vs free order, skip, last block, zero-target blocks, plan edits, −1 (Q21), tags, finish, discard. Also: refusing a second active session (in-controller and store-wide), re-owning a plan fetched from another context, and clip removal skipped when a save fails.
+Planned sessions: start, counting, minimums vs strict, mandatory vs free order, skip, last block, zero-target blocks, plan edits, −1 (Q21), tags, finish, discard. Also: refusing a second active session (in-controller and store-wide), re-owning a plan fetched from another context, clip removal skipped when a save fails, and `sessionSaved` announced only on a successful finish.
 
 ## RepsTests/FreeSessionTests.swift
-Free sessions: untargeted blocks, club/tag changes start blocks (in place when unused), navigation off, finish drops unused blocks, finish discards a session left with none.
+Free sessions: untargeted blocks, club/tag changes start blocks (in place when unused), navigation off, finish drops unused blocks, finish discards a session left with none, `sessionSaved` announced only when finish actually saves.
 
 ## RepsTests/SessionResumeTests.swift
 On-disk kill and resume (autosave off), newest-active lookup, resume after a strict plan ended. Also: re-owning a session fetched from another context, tags from the most recent block with no active block, advancing off a completed strict block on resume, and falling back when `activeBlockOrder` is stale.
@@ -486,6 +512,13 @@ Continue/finish titles, status pills, camera note, features.
 
 ## RepsTests/BagSeedingTests.swift
 Default bag seeding: empty store, second run, existing bag untouched.
+
+## RepsTests/VoiceLinesTests.swift
+Count text, announceCount gating, block callout wording (targeted/single/returning/untargeted), wedge names, target-reached strict vs minimums, plan end, session saved, callouts always speak with announceCount off.
+
+## RepsTests/SpeechAnnouncerTests.swift
+- `FakeSpeaker`: records spoken text, stop/prepare counts and each line's `finished` closure
+- One line at a time, newest count replaces an unspoken one, a count queues behind pending callouts, callouts are never dropped and finish in order, `announceCount` re-read on every event, `sessionSaved` cuts in and clears the queue (idle case doesn't call `stop()`), a late `finished` from a stopped line is ignored
 
 ## DetectorEvalTests/MLData.swift
 Locates the hitreg-ml checkout (ADR 0007).

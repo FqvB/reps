@@ -8,4 +8,6 @@ nonisolated enum SessionEvent: Equatable, Sendable {
     case blockChanged(clubName: String, target: Int?, done: Int)
     // No block is left to run; shots are ignored until one is selected or the session ends.
     case planEnded
+    // Done saved the session (§5.7 "Done. Session saved."); not sent when finish() discards or the save fails.
+    case sessionSaved
 }

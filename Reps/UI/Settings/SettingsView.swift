@@ -65,7 +65,6 @@ struct SettingsView: View {
                         title: "Record audio on clips", subtitle: "Never used for counting", isOn: $recordClipAudio)
                 }
                 SettingsSection(title: "Voice") {
-                    // TODO(#10): the speaker reads announceCount.
                     SettingsToggleRow(title: "Announce count", isOn: $announceCount)
                     SettingsDivider()
                     // TODO(#27): tempo callouts read announceTempo.
