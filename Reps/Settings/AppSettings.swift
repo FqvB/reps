@@ -16,6 +16,7 @@ nonisolated struct AppSettings {
         static let recordClipAudio = "settings.recordClipAudio"
         static let announceCount = "settings.announceCount"
         static let announceTempo = "settings.announceTempo"
+        static let hasCompletedOnboarding = "settings.hasCompletedOnboarding"
     }
 
     nonisolated enum Default {
@@ -25,6 +26,7 @@ nonisolated struct AppSettings {
         static let recordClipAudio = true
         static let announceCount = true
         static let announceTempo = false
+        static let hasCompletedOnboarding = false
     }
 
     // .none means putting, so it isn't a choice.
@@ -68,6 +70,12 @@ nonisolated struct AppSettings {
     var announceTempo: Bool {
         get { bool(Key.announceTempo, Default.announceTempo) }
         nonmutating set { defaults.set(newValue, forKey: Key.announceTempo) }
+    }
+
+    // Set once by onboarding (#5); the app shows the onboarding screens while it's false.
+    var hasCompletedOnboarding: Bool {
+        get { bool(Key.hasCompletedOnboarding, Default.hasCompletedOnboarding) }
+        nonmutating set { defaults.set(newValue, forKey: Key.hasCompletedOnboarding) }
     }
 
     // Putting has no camera angle; range sessions start at the default.

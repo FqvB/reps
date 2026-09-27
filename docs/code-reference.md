@@ -77,7 +77,7 @@ JSON export format v1 (ADR 0012); property names are the JSON keys.
 ## Reps/Settings/AppSettings.swift
 Typed UserDefaults preferences (F25); nonisolated.
 - `ClipQuality`: p1080fps60 (default), p1080fps30, p720fps30 (PLACEHOLDER, Q32); raw values persisted, never rename
-- `AppSettings(defaults:)`: `Key` (persisted UserDefaults keys), `Default` (fallback values), `angleChoices` (faceOn/downTheLine; `.none` means putting, not a choice); typed accessors for each key, sanitizing unknown or `.none` stored angles back to `Default.cameraAngle`
+- `AppSettings(defaults:)`: `Key` (persisted UserDefaults keys), `Default` (fallback values), `angleChoices` (faceOn/downTheLine; `.none` means putting, not a choice); typed accessors for each key, sanitizing unknown or `.none` stored angles back to `Default.cameraAngle`; `hasCompletedOnboarding` (set once by onboarding, #5)
 - `cameraAngle(for:)`: `.none` for putting, `defaultCameraAngle` otherwise
 
 ## Reps/Settings/ClipStorage.swift
@@ -210,6 +210,7 @@ Bag writes for Settings and onboarding (F19); every write saves.
 - `rename(_:to:in:) throws`: only `BagClub.name`; plan blocks and shots keep the old name (snapshots, #4); throws `.duplicateName` against other rows (case-insensitive)
 - `delete(_:in:) throws`: removes the row; plans keep referencing the old name
 - `move(fromOffsets:toOffset:in:) throws`: reorders the in-bag clubs (offsets index bag order), hidden rows renumbered after them; SwiftUI `onMove` semantics, copied from `PlanDraft.moveBlocks`
+- `seedDefaultBag(in:) throws -> Bool`: inserts `BagCatalog.defaultBag` in catalog order only when there are no BagClub rows at all; false otherwise (idempotent, #5)
 
 ## Reps/UI/Theme/Theme.swift
 Literal Figma values (docs/design.md): colours (`ink`, `secondaryText`, `accent`, `accentDeep`, `card`, `fill`, `hairline`, `sheet`, `danger`…), `Typography` (text styles where Figma matches their default size), `Spacing`, `Radius`.
