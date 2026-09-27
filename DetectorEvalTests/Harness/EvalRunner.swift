@@ -15,6 +15,22 @@ struct EvalRunner {
     var frameRate: Double? = DetectorInput.frameRate
     var shortSide: Int? = DetectorInput.shortSide
 
+    enum RunError: Error {
+        case nonIncreasingFrameTimes(video: String)
+    }
+
+    // Labels move onto the decoder's clock by frame number; past the end, the CSV seconds are used.
+    static func labelTimes(_ labels: [EvalLabel], frameTimes: [Double]) -> [Double] {
+        labels.map { label in
+            frameTimes.indices.contains(label.frame) ? frameTimes[label.frame] : label.seconds
+        }
+    }
+
+    // Frame timestamps must be strictly increasing for labelTimes' frame → time mapping to be valid.
+    static func isStrictlyIncreasing(_ times: [Double]) -> Bool {
+        zip(times, times.dropFirst()).allSatisfy { $0 < $1 }
+    }
+
     func run(
         _ name: String,
         on dataset: EvalDataset,
@@ -35,12 +51,11 @@ struct EvalRunner {
                 detections += detector.process(frame).map { Detection(time: $0.time, emittedAt: frame.time) }
             }
             detections += detector.finish().map { Detection(time: $0.time, emittedAt: lastTime) }
-            // Labels move onto the decoder's clock by frame number; past the end, the CSV seconds are used.
-            let labels = video.labels.map { label in
-                TimedLabel(
-                    time: frameTimes.indices.contains(label.frame) ? frameTimes[label.frame] : label.seconds,
-                    kind: label.kind)
+            guard Self.isStrictlyIncreasing(frameTimes) else {
+                throw RunError.nonIncreasingFrameTimes(video: video.name)
             }
+            let times = Self.labelTimes(video.labels, frameTimes: frameTimes)
+            let labels = zip(video.labels, times).map { TimedLabel(time: $1, kind: $0.kind) }
             results.append(
                 VideoResult(
                     video: video.name,

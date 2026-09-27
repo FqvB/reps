@@ -39,9 +39,12 @@ struct VideoFrameReader {
         let step = frameRate.map { 1 / $0 } ?? 0
         while let sample = output.copyNextSampleBuffer() {
             let time = sample.presentationTimeStamp.seconds
+            // Only samples with an image buffer count as decoded frames, so an empty sample
+            // can't shift the frame-number → timestamp mapping labels are put on.
+            guard let pixelBuffer = sample.imageBuffer else { continue }
             times.append(time)
             // 1 ms slack so 29.97 fps footage still lands on every 2nd frame.
-            guard time + 0.001 >= nextDue, let pixelBuffer = sample.imageBuffer else { continue }
+            guard time + 0.001 >= nextDue else { continue }
             nextDue = nextDue.isFinite ? max(nextDue + step, time + step / 2) : time + step
             try body(VideoFrame(pixelBuffer: pixelBuffer, time: time, orientation: orientation))
         }

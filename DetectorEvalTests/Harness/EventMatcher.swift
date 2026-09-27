@@ -43,6 +43,8 @@ enum EventMatcher {
             score.labelsByKind[label.kind, default: 0] += 1
             guard profile.role(of: label.kind) == .positive else { continue }
             score.positives += 1
+            // Earliest free detection, not nearest: keeps the matching maximal (see the comment
+            // above), so a reported latency can come out negative.
             let hit = sortedDetections.indices.first { index in
                 !claimed[index] && abs(sortedDetections[index].time - label.time) <= window
             }
