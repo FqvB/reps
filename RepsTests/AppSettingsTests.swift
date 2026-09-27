@@ -19,6 +19,7 @@ struct AppSettingsTests {
             #expect(settings.recordClipAudio == true)
             #expect(settings.announceCount == true)
             #expect(settings.announceTempo == false)
+            #expect(settings.hasCompletedOnboarding == false)
         }
     }
 
@@ -34,6 +35,7 @@ struct AppSettingsTests {
         settings.recordClipAudio = false
         settings.announceCount = false
         settings.announceTempo = true
+        settings.hasCompletedOnboarding = true
 
         #expect(settings.defaultCameraAngle == .downTheLine)
         #expect(settings.clipQuality == .p720fps30)
@@ -41,6 +43,7 @@ struct AppSettingsTests {
         #expect(settings.recordClipAudio == false)
         #expect(settings.announceCount == false)
         #expect(settings.announceTempo == true)
+        #expect(settings.hasCompletedOnboarding == true)
 
         let reread = AppSettings(defaults: defaults)
         #expect(reread.defaultCameraAngle == .downTheLine)
@@ -49,6 +52,7 @@ struct AppSettingsTests {
         #expect(reread.recordClipAudio == false)
         #expect(reread.announceCount == false)
         #expect(reread.announceTempo == true)
+        #expect(reread.hasCompletedOnboarding == true)
     }
 
     @Test func unknownOrNoneAngleFallsBack() throws {
@@ -76,6 +80,7 @@ struct AppSettingsTests {
         #expect(AppSettings.Key.recordClipAudio == "settings.recordClipAudio")
         #expect(AppSettings.Key.announceCount == "settings.announceCount")
         #expect(AppSettings.Key.announceTempo == "settings.announceTempo")
+        #expect(AppSettings.Key.hasCompletedOnboarding == "settings.hasCompletedOnboarding")
     }
 
     @Test func cameraAngleForMode() throws {

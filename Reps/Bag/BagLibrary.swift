@@ -18,6 +18,17 @@ enum BagLibrary {
         return clubs.first { BagCatalog.key($0.name) == key }
     }
 
+    // Onboarding (#5): the common 14 when the bag table is empty. A second run, or a bag the user already has, changes nothing.
+    @discardableResult
+    static func seedDefaultBag(in context: ModelContext) throws -> Bool {
+        guard try all(in: context).isEmpty else { return false }
+        for (index, name) in BagCatalog.defaultBag.enumerated() {
+            context.insert(BagClub(name: name, sortOrder: index))
+        }
+        try context.save()
+        return true
+    }
+
     // A chip tap. Off keeps the row (spec §5.1); on for a missing name inserts one.
     static func setInBag(_ name: String, _ isInBag: Bool, in context: ModelContext) throws {
         let trimmed = BagCatalog.trimmed(name)

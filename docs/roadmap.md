@@ -22,7 +22,7 @@ Goal: usable on the range with a tap per shot. Install on your phone and start l
 | # | Feature | Spec | Plan | Review | Status |
 |---|---|---|---|---|---|
 | [#4](https://github.com/FqvB/reps/issues/4) | SwiftData model + JSON export | §5.1, §10 | opus | opus | ☑ |
-| [#5](https://github.com/FqvB/reps/issues/5) | Onboarding | F19, F20 | opus | fable-security | ☐ |
+| [#5](https://github.com/FqvB/reps/issues/5) | Onboarding | F19, F20 | opus | fable-security | ☑ |
 | [#6](https://github.com/FqvB/reps/issues/6) | Settings | F19, F25 | opus | – | ☑ |
 | [#7](https://github.com/FqvB/reps/issues/7) | Plans list + plan editor | F1, F18, F22, F24 | opus | – | ☑ |
 | [#8](https://github.com/FqvB/reps/issues/8) | Session engine (SessionController) | F2, F14, F16, F18, F21, F22, §6 | opus | opus | ☑ |
