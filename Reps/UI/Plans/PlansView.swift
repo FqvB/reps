@@ -28,6 +28,7 @@ struct PlansView: View {
     @State private var planToDelete: PracticePlan?
     @State private var errorMessage: String?
     @State private var showsSettings = false
+    @State private var showsLog = false
 
     var body: some View {
         NavigationStack {
@@ -58,12 +59,17 @@ struct PlansView: View {
             .navigationTitle("Plans")
             .navigationSubtitle(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Log") { showsLog = true }  // PLACEHOLDER: session log entry label
+                        .tint(Theme.accent)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Settings") { showsSettings = true }
                         .tint(Theme.accent)
                 }
             }
             .navigationDestination(isPresented: $showsSettings) { SettingsView() }
+            .navigationDestination(isPresented: $showsLog) { SessionLogView() }
             .fullScreenCover(item: $editing) { target in
                 PlanEditorView(plan: target.plan)
             }
