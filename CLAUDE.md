@@ -5,7 +5,7 @@ iOS golf practice rep counter. Phone on a tripod counts shots and putts through 
 - Spec (source of truth): `docs/spec/mvp-design-doc.md` (original: `docs/spec/mvp-design-doc.html`)
 - Roadmap: `docs/roadmap.md` · GitHub milestones = phases, issues = features
 - Figma: https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1 · notes in `docs/design.md`
-- Open questions: `docs/open-questions.md` · decisions: `docs/adr/`
+- Open questions: `docs/open-questions.md` · decisions: `docs/adr/` · placeholders to fill: `docs/placeholders.md`
 - Code reference (file + function docs): `docs/code-reference.md`
 
 ## Platform
