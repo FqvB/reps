@@ -74,6 +74,24 @@ JSON export format v1 (ADR 0012); property names are the JSON keys.
 - `ExportCoding.decode(_:) throws -> ExportDocument`: inverse of `encode`
 - `ExportCoding.encodeDate(_:) -> String`, `ExportCoding.decodeDate(_:) throws -> Date`: millisecond-rounded ISO 8601 UTC via whole-second formatting + a spliced-in `.mmm`, avoiding `ISO8601FormatStyle`'s fractional-seconds float truncation
 
+## Reps/Settings/AppSettings.swift
+Typed UserDefaults preferences (F25); nonisolated.
+- `ClipQuality`: p1080fps60 (default), p1080fps30, p720fps30 (PLACEHOLDER, Q32); raw values persisted, never rename
+- `AppSettings(defaults:)`: `Key` (persisted UserDefaults keys), `Default` (fallback values), `angleChoices` (faceOn/downTheLine; `.none` means putting, not a choice); typed accessors for each key, sanitizing unknown or `.none` stored angles back to `Default.cameraAngle`
+- `cameraAngle(for:)`: `.none` for putting, `defaultCameraAngle` otherwise
+
+## Reps/Settings/ClipStorage.swift
+Clip folder size/count for the Settings Storage row.
+- `ClipUsage(bytes:count:)`: `.zero`
+- `ClipStorage.clipsDirectory`: `Documents/clips` (ADR 0006 root; #22 writes clips there)
+- `ClipStorage.usage(at:fileManager:) -> ClipUsage`: sync `FileManager` enumeration of `.mov` files; call off the main actor; a missing folder is `.zero`
+
+## Reps/Settings/SettingsCopy.swift
+Copy for the Settings screen; pure, unit-tested.
+- `clubCount(_:)`, `angleTitle(_:)`, `clipQualityTitle(_:)`: row copy
+- `clipUsage(_:locale:)`: nil → "Calculating…" (PLACEHOLDER); zero → "No clips yet" (PLACEHOLDER); else byte count · clip count
+- `version(info:)`: "<short> (<build>)" from the bundle's `CFBundleShortVersionString`/`CFBundleVersion`, falling back per missing part
+
 ## Reps/Persistence/RepsStore.swift
 Builds the SwiftData container for the app and tests.
 - `RepsStore.models`: the `@Model` types (`RepsSchemaCurrent.models`)
