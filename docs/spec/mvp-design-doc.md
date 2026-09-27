@@ -191,7 +191,7 @@ var clipFileName: String?        // relative path in app Documents
 
 Club and tags are stored on every shot rather than only on the block, so bulk retagging in the library is a simple update over the selected shots, and library filters are one predicate.
 
-Completion for a block is `(repsCounted + repsManualAdjust) / targetReps`, uncapped, so 45 of 30 reports 150%. Session completion is total done over total target, also uncapped.
+Completion for a block is `(repsCounted + repsManualAdjust) / targetReps`, uncapped, so 45 of 30 reports 150%. Session completion caps each block at its target before summing, so surplus on one block never covers another (45/30 + 15/30 = 75 %, Q22).
 
 Keeping `repsManualAdjust` separate is deliberate: it tells you the detector's real-world accuracy for free, straight from the log.
 

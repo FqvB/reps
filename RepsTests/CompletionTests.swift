@@ -34,12 +34,22 @@ struct CompletionTests {
         #expect(Completion.isComplete(BlockTally(counted: 40, manualAdjust: 0, target: 30)))
     }
 
-    @Test func sessionIsTotalDoneOverTotalTarget() {
+    // Q22: 45/30 + 15/30 is 75 %, not 100 %; surplus on one block doesn't cover another.
+    @Test func sessionCapsEachBlockAtItsTarget() {
         let tallies = [
             BlockTally(counted: 45, manualAdjust: 0, target: 30),
             BlockTally(counted: 10, manualAdjust: 5, target: 30),
         ]
-        #expect(Completion.session(tallies) == 1.0)
+        #expect(Completion.session(tallies) == 0.75)
+        #expect(Completion.block(tallies[0]) == 1.5)
+    }
+
+    @Test func surplusDoesNotCoverASkippedBlock() {
+        let tallies = [
+            BlockTally(counted: 60, manualAdjust: 0, target: 30),
+            BlockTally(counted: 0, manualAdjust: 0, target: 30),
+        ]
+        #expect(Completion.session(tallies) == 0.5)
     }
 
     @Test func skippedBlockCountsAgainstSession() {
@@ -50,9 +60,12 @@ struct CompletionTests {
         #expect(Completion.session(tallies) == 0.75)
     }
 
-    @Test func sessionCanExceedOne() {
-        let tallies = [BlockTally(counted: 60, manualAdjust: 0, target: 40)]
-        #expect(Completion.session(tallies) == 1.5)
+    @Test func sessionNeverExceedsOne() {
+        let tallies = [
+            BlockTally(counted: 60, manualAdjust: 0, target: 40),
+            BlockTally(counted: 35, manualAdjust: 0, target: 30),
+        ]
+        #expect(Completion.session(tallies) == 1.0)
     }
 
     @Test func untargetedBlocksAreIgnored() {

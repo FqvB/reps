@@ -10,7 +10,7 @@ Spec §5.1 sketches six SwiftData models; §10 wants plans and sessions exportab
 - Every model has a `UUID` `id`. Blocks and block results carry an explicit `order`; relationship arrays are never read in stored order.
 - Delete rules: plan → blocks cascade; plan → sessions nullify; plan block → results nullify; session → results → shots cascade. BagClub has no relationships; everything references clubs by name.
 - History is snapshotted: `PracticeSession.planName` and `mode`, `BlockResult.clubName`, `targetReps` (nil in free sessions) and `tags`, `ShotRecord.clubName`.
-- Completion is pure (`Completion`): block = max(0, counted + manualAdjust) / target, uncapped; session = total done / total target over targeted blocks; nil without a target.
+- Completion is pure (`Completion`): block = max(0, counted + manualAdjust) / target, uncapped; session = total done / total target over targeted blocks; nil without a target. Amended by Q22 (#11): session sums min(done, target) per block.
 - Schema is `RepsSchemaV1` (1.0.0) with `RepsMigrationPlan` from day one. Before V2, the V1 classes are copied unchanged into `RepsSchemaV1` as nested types.
 - `@Model` types are MainActor (ADR 0009 default); off-main writers (clip writer, tempo) pass `persistentModelID` and write on main.
 - Export format v1: `ExportDocument` with `formatVersion`, `exportedAt`, `bag`, `plans`, finished `sessions` (nested blocks and shots). Keys are the Swift property names, ISO 8601 UTC, millisecond precision (rounded), sorted keys, nil fields omitted, enums as raw strings, clips as bare `<shotId>.mov`, no derived values. Encoding returns `Data` only.

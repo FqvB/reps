@@ -19,12 +19,17 @@ nonisolated enum Completion {
         return tally.done >= target
     }
 
-    // Total done over total target across targeted blocks; untargeted blocks are ignored.
+    // Q22: each block counts at most its target, so surplus on one block never covers another (45/30 + 15/30 = 75 %).
+    // Untargeted blocks are ignored.
     static func session(_ tallies: [BlockTally]) -> Double? {
-        let targeted = tallies.filter { ($0.target ?? 0) > 0 }
-        let target = targeted.reduce(0) { $0 + ($1.target ?? 0) }
+        var done = 0
+        var target = 0
+        for tally in tallies {
+            guard let blockTarget = tally.target, blockTarget > 0 else { continue }
+            done += min(tally.done, blockTarget)
+            target += blockTarget
+        }
         guard target > 0 else { return nil }
-        let done = targeted.reduce(0) { $0 + $1.done }
         return Double(done) / Double(target)
     }
 }

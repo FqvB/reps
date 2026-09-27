@@ -16,7 +16,12 @@ struct SessionView: View {
         Group {
             // Nil for a moment while the cover animates away after finish().
             if let session = controller.session {
-                content(session)
+                if showSummary {
+                    summary(session)
+                        .transition(.move(edge: .bottom))
+                } else {
+                    content(session)
+                }
             } else {
                 Theme.background.ignoresSafeArea()
             }
@@ -43,10 +48,17 @@ struct SessionView: View {
         .sheet(isPresented: $pickingClub) {
             FreeClubSheet(current: controller.activeBlock?.clubName ?? "") { controller.setClub($0) }
         }
-        .sheet(isPresented: $showSummary) {
-            SummaryPlaceholderView(
-                onKeepGoing: { showSummary = false },
-                // finish() clears the session, which closes the session cover and this sheet with it.
+    }
+
+    // F23/F28: End shows the summary in place; the session stays active until Done, and a kill here still resumes.
+    private func summary(_ session: PracticeSession) -> some View {
+        TimelineView(.periodic(from: session.startedAt, by: 60)) { context in
+            SessionSummaryView(
+                summary: SummaryDisplay.summary(
+                    planName: session.planName, mode: session.mode, blocks: controller.blocks.map(SummaryBlock.init),
+                    elapsed: context.date.timeIntervalSince(session.startedAt)),
+                onContinue: { withAnimation { showSummary = false } },
+                // finish() clears the session, which closes the session cover with the summary still showing.
                 onDone: { controller.finish() }
             )
         }
@@ -101,7 +113,7 @@ struct SessionView: View {
             .lineLimit(1)
             .padding(.horizontal, 72)
             HStack {
-                Button("End") { showSummary = true }
+                Button("End") { withAnimation { showSummary = true } }
                     .font(Theme.Typography.body)
                     .foregroundStyle(Theme.secondaryText)
                     .buttonStyle(.plain)
