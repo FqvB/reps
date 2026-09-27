@@ -30,7 +30,7 @@ Pure completion math (spec §5.1, F21), nonisolated.
 - `BlockTally(counted:manualAdjust:target:)`: `done` = max(0, counted + manualAdjust); `target` nil = free block
 - `Completion.block(_:) -> Double?`: done / target, uncapped; nil without a positive target
 - `Completion.isComplete(_:) -> Bool`: done ≥ target; false without a positive target
-- `Completion.session(_:) -> Double?`: total done / total target over targeted blocks; nil if none
+- `Completion.session(_:) -> Double?`: Σ min(done, target) / Σ target over targeted blocks (Q22: surplus never covers another block, max 1.0); nil if none
 
 ## Reps/Model/BagClub.swift
 - `BagClub(name:sortOrder:isInBag:)`: one club in the user's bag; `isInBag` false hides it from pickers. No relationships.
@@ -112,6 +112,11 @@ Copy and chip states for the session screen; pure values, unit-tested.
 - `BlockSnapshot(order:clubName:note:done:target:)`, `StripChip` (`id` = block order, `state` active/complete/pending, `isSelectable`), `NextBlockPrompt(title:message:)`
 - `SessionDisplay`: `dimDelay` (30 s), `title(planName:)`, `subtitle(mode:angle:)`, `angleTitle(_:)`, `blockTitle(clubName:note:mode:)` (putting uses the note), `countDetail(done:target:note:mode:)`, `stripChips(_:mode:activeOrder:canSelect:isStrict:)` (mirrors `SessionController.select`), `nextBlockPrompt(clubName:done:target:canComeBack:)` (nil at/over target), `elapsed(_:)`, `tagChoices(active:recent:limit:)`, `toggling(_:in:)`, `adding(_:to:)`, `resumeMessage(title:done:mode:)`
 
+## Reps/Session/SummaryDisplay.swift
+Numbers and copy for the session summary (Figma 12, F23); pure values, unit-tested.
+- `SummaryBlock(order:clubName:note:tags:counted:manualAdjust:target:clipCount:tempos:)`, `SummaryBar(fill:surplusFrom:)`, `SummaryRow`, `SummaryStat`, `SessionSummary(subtitle:headline:caption:rows:stats:)`
+- `SummaryDisplay.summary(planName:mode:blocks:elapsed:)`: rows by order (free sessions hide unused blocks, add tags to titles); `overall(_:mode:)` (capped %, or total count without targets); `row(_:mode:isFree:)`; `percent(_:isComplete:)` (rounded, ≤ 99 % until complete); `stats(_:)` (clips, avg tempo, Σ |manualAdjust|); `tempo(_:)`; `duration(_:)`
+
 ## Reps/Plans/PlanDraft.swift
 The plan editor's working copy (spec F1, F24, F28); nonisolated values, nothing persisted.
 - `BlockDraft(id:clubName:targetReps:note:)`: `repsRange` 1...999, `defaultReps` 30; `trimmedClubName`, `storedNote` (trimmed, nil if blank), `isValid`, `adjustReps(by:)` clamps
@@ -136,7 +141,7 @@ Plan writes for the list and editor; MainActor; every write saves.
 - `lastDone(_:) -> Date?`: newest `endedAt ?? startedAt` of finished sessions, filtered in Swift (ADR 0013)
 
 ## Reps/UI/Theme/Theme.swift
-Literal Figma values (docs/design.md): colours (`ink`, `secondaryText`, `accent`, `card`, `fill`, `hairline`, `sheet`, `danger`…), `Typography` (text styles where Figma matches their default size), `Spacing`, `Radius`.
+Literal Figma values (docs/design.md): colours (`ink`, `secondaryText`, `accent`, `accentDeep`, `card`, `fill`, `hairline`, `sheet`, `danger`…), `Typography` (text styles where Figma matches their default size), `Spacing`, `Radius`.
 
 ## Reps/UI/Components/*.swift
 Shared by every screen.
@@ -178,8 +183,19 @@ Figma 06.
 
 ## Reps/UI/Session/SessionView.swift
 Figma 03, 05, 14. The live session; reads and drives a `SessionController`.
-- `SessionView(controller:)`: nav (End → summary placeholder, title, mode · angle, elapsed), block strip (planned), club + tag chips (range modes), camera placeholder (#13), big count, −1/+1, Next block (asks first before target)
+- `SessionView(controller:)`: nav (End → summary in place (Continue session / Done), title, mode · angle, elapsed), block strip (planned), club + tag chips (range modes), camera placeholder (#13), big count, −1/+1, Next block (asks first before target)
 - `BlockSnapshot.init(_ result: BlockResult)`
+
+## Reps/UI/Session/SessionSummaryView.swift
+Figma 12. Shown by `SessionView` on End.
+- `SessionSummaryView(summary:onContinue:onDone:)`: header, overall card, block rows with target/surplus bars, three stats, footnote, Continue session / Done
+- `SummaryBlock.init(_ result: BlockResult)`
+
+## Reps/UI/Session/SummaryTheme.swift
+Summary values from Figma 12: `Theme.Typography.summaryHeadline` (88 rounded bold), `summaryHeadlineTracking`, `summarySubtitle`, `summaryCaption`, `summaryRowTitle`, `summaryRowPercent`, `summaryStatValue`, `summaryStatLabel`; `Theme.Radius.stat`.
+
+## Reps/UI/Components/SecondaryButtonStyle.swift
+- `SecondaryButtonStyle`: full-width grey CTA (Continue session)
 
 ## Reps/UI/Session/BlockStrip.swift
 - `BlockStrip(chips:onSelect:)`: horizontal block chips, centres the active one; only selectable chips take taps
@@ -189,9 +205,6 @@ Figma 03, 05, 14. The live session; reads and drives a `SessionController`.
 
 ## Reps/UI/Session/FreeClubSheet.swift
 - `FreeClubSheet(current:onPick:)`: bag club grid (`ClubPicker`) plus Other…; a pick closes the sheet (F14)
-
-## Reps/UI/Session/SummaryPlaceholderView.swift
-- `SummaryPlaceholderView(onKeepGoing:onDone:)`: stand-in until #11; Done finishes the session
 
 ## Reps/UI/Session/SessionTheme.swift
 Session values from Figma: `Theme.Typography.count` (132 rounded bold), `countTracking`, `countDetail`, `manualButton`, `stripTitle`, `stripDetail`, `navSubtitle`; `Theme.Radius.stripChip`, `preview`.
@@ -251,6 +264,9 @@ In-memory store: create, round trip, edit in place with renumbering, removed blo
 
 ## RepsTests/SessionDisplayTests.swift
 Session copy, strip chip states and selectability, Next block prompt, elapsed clock, tag choices, resume message.
+
+## RepsTests/SummaryDisplayTests.swift
+Summary headline (Q22-capped), captions, rows and bars, percent rounding, putting and free sessions, stats, duration, tempo.
 
 ## DetectorEvalTests/MLData.swift
 Locates the hitreg-ml checkout (ADR 0007).
