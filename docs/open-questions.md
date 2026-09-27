@@ -6,7 +6,6 @@ Answer inline, then move the decision to an ADR if it's architectural. Settled q
 
 | # | Question | Blocks | Notes / leaning |
 |---|---|---|---|
-| Q18 | Where does DetectorEval get the ball region (the user's tap, §5.2) for each footage clip? | #14, #16, #19 | Leaning: a small per-video file in hitreg-ml (e.g. `data/putting/roi/<video>.json`, normalised rect at the first frame) written by a labelling tool; the `makeDetector(video)` factory reads it. Alternative: auto-locate the ball in the first second. |
 | Q19 | The range test split has 23 swings, 16 practice, 7 motion. Enough to gate ≥95 % recall and ≤1 false per 50? | #21 | No: one miss is −4 %. Leaning: record more range footage for the test split, or gate on test + val once the classifier is frozen. Two test swings hit < 2 s into their clip; a detector warm-up (e.g. ball lock ~1 s) can miss them for trimming reasons, so check miss times before reading recall. |
 | Q20 | Swing classifier (ADR 0007) was trained on 2 s windows at 30 fps (60 poses); DetectorInput is 15 fps. | #18 | #18 must retrain at 15 fps, resample poses, or get 30 fps pose frames. |
 
@@ -30,4 +29,5 @@ Answer inline, then move the decision to an ADR if it's architectural. Settled q
 | Q15 | Re-tee/pickup ground truth | `motion` rows are the re-tee/pickup events. They must not count, and they're the hard negatives. | ADR 0007 |
 | Q16 | Where the Create ML model lives | Copied into this repo as `ml/models/SwingClassifier_hitreg_ml1.mlmodel` (4 MB). The suffix names its hitreg-ml source version. | ADR 0007 |
 | Q17 | Putting eval footage | Recorded 2026-09-27: one indoor clip, 19 putts + 15 motion + 3 pickup, in hitreg-ml `data/putting/` (`tools/label_putt.py`, kinds putt/pickup/motion). Threshold gets set in #16. | ADR 0007 |
+| Q18 | Ball region for eval footage | Not needed: detectors auto-locate the ball (putting: newest ball still ~1 s anywhere; range: near the feet via pose). | ADR 0011 |
 | Q13 | Which Figma frames are current | The Figma file has one page for this project, and all of it is current. | docs/design.md |
