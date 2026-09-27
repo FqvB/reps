@@ -59,6 +59,8 @@ enum RepsExport {
             startedAt: session.startedAt,
             endedAt: session.endedAt,
             cameraAngle: session.cameraAngle,
+            isStrictCount: session.isStrictCount,
+            isOrderMandatory: session.isOrderMandatory,
             blocks: session.sortedBlockResults.map(blockResult)
         )
     }

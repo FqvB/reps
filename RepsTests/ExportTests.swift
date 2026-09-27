@@ -93,9 +93,12 @@ struct ExportTests {
         #expect(session["cameraAngle"] as? String == "downTheLine")
         #expect(session["planName"] as? String == "Wedge day")
         #expect(session["endedAt"] as? String == "2026-09-21T15:13:20.250Z")
+        #expect(session["isStrictCount"] as? Bool == true)
+        #expect(session["isOrderMandatory"] as? Bool == false)
         #expect(
             Set(session.keys) == [
-                "id", "planId", "planName", "mode", "status", "startedAt", "endedAt", "cameraAngle", "blocks",
+                "id", "planId", "planName", "mode", "status", "startedAt", "endedAt", "cameraAngle", "isStrictCount",
+                "isOrderMandatory", "blocks",
             ])
     }
 

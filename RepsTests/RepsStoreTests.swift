@@ -26,7 +26,10 @@ struct RepsStoreTests {
             "BagClub": ["id", "name", "sortOrder", "isInBag"],
             "PracticePlan": ["id", "name", "mode", "isOrderMandatory", "isStrictCount", "createdAt"],
             "PlanBlock": ["id", "clubName", "targetReps", "note", "order"],
-            "PracticeSession": ["id", "planName", "mode", "status", "startedAt", "endedAt", "cameraAngle"],
+            "PracticeSession": [
+                "id", "planName", "mode", "status", "startedAt", "endedAt", "cameraAngle", "isStrictCount",
+                "isOrderMandatory", "activeBlockOrder",
+            ],
             "BlockResult": [
                 "id", "order", "clubName", "targetReps", "tags", "repsCounted", "repsManualAdjust",
             ],

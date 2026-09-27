@@ -43,7 +43,9 @@ Pure completion math (spec §5.1, F21), nonisolated.
 - `PlanBlock(clubName:targetReps:note:order:)`: one block of a plan; `results` nullify on delete
 
 ## Reps/Model/PracticeSession.swift
-- `PracticeSession(plan:mode:cameraAngle:startedAt:)`: one run (plan nil = free session); copies `planName`; `status` starts `.active`; `blockResults` cascade
+- `PracticeSession(plan:mode:cameraAngle:startedAt:)`: one run (plan nil = free session); copies `planName`, `isStrictCount`, `isOrderMandatory`; `status` starts `.active`; `blockResults` cascade
+- `activeBlockOrder`: `order` of the active block for resume; nil when no block is left (Q24, ADR 0013)
+- `isFreeSession`: `planName == nil`
 - `sortedBlockResults`: by `(order, id)`; `completion`: `Completion.session` over the results
 
 ## Reps/Model/BlockResult.swift
@@ -62,7 +64,7 @@ Pure completion math (spec §5.1, F21), nonisolated.
 ## Reps/Export/ExportDocument.swift
 JSON export format v1 (ADR 0012); property names are the JSON keys.
 - `ExportDocument`: `formatVersion`, `exportedAt`, `bag`, `plans`, `sessions`; `currentFormatVersion` = 1
-- `ExportClub`, `ExportPlan`, `ExportPlanBlock`, `ExportSession`, `ExportBlockResult`, `ExportShot`: raw stored fields, ids for cross references
+- `ExportClub`, `ExportPlan`, `ExportPlanBlock`, `ExportSession` (with the `isStrictCount`/`isOrderMandatory` snapshot), `ExportBlockResult`, `ExportShot`: raw stored fields, ids for cross references
 
 ## Reps/Export/RepsExport.swift
 - `RepsExport.document(clubs:plans:sessions:exportedAt:) -> ExportDocument`: sorted snapshot; finished sessions only; ties broken by `(sortOrder, name, id)` for clubs, `(createdAt, id)` for plans, `(startedAt, id)` for sessions, so export order is deterministic
@@ -76,6 +78,34 @@ JSON export format v1 (ADR 0012); property names are the JSON keys.
 Builds the SwiftData container for the app and tests.
 - `RepsStore.models`: the `@Model` types (`RepsSchemaCurrent.models`)
 - `RepsStore.makeContainer(inMemory:) throws -> ModelContainer`: container over `RepsSchemaCurrent` with `RepsMigrationPlan`; `inMemory: true` for tests
+- `RepsStore.makeContainer(url:) throws -> ModelContainer`: same, at a given store file (tests reopen it to simulate a kill)
+
+## Reps/Session/SessionEvent.swift
+What the session engine tells the voice layer (#10); plain values, nonisolated.
+- `countChanged(done:target:)`: after every counted shot and every effective −1
+- `targetReached(clubName:target:isStrict:)`: done just became equal to the target; strict blocks end here
+- `blockChanged(clubName:target:done:)`: a block became active (start, resume, next, strip jump, strict auto-advance, club/tag change, −1 reopening a block)
+- `planEnded`: no block left to run; shots are ignored until a block is selected or the session ends
+
+## Reps/Session/ClipFileRemoving.swift
+- `ClipFileRemoving`: `removeClip(fileName:sessionID:)`, `removeClips(sessionID:)` for `Documents/clips/<sessionId>/`; #22 supplies the real one
+- `NoClipFiles`: no-op default
+
+## Reps/Session/SessionController.swift
+The session engine (spec §4, F2, F14, F16, F18, F21, F22, §6; ADR 0013). MainActor, `@Observable`, saves after every change, then emits events.
+- `SessionController(context:clipFiles:now:saveHook:)`: clip remover, clock and the save call are injectable (`saveHook` defaults to `context.save()`; tests use it to make a save fail)
+- State: `session`, `activeBlock`, `activeTags`, `lastSaveError`; computed `blocks`, `isFreeSession`, `isStrictCount`, `isOrderMandatory`, `canSelectBlocks`, `isPlanComplete`
+- `addEventHandler(_:)`: synchronous handlers, called in order after the save; must not call back into the controller
+- `start(plan:cameraAngle:) throws`: one BlockResult per plan block, first active; re-owns `plan` if it's from another context; `SessionError.emptyPlan`, `.sessionInProgress` (also when another session is already active in the store)
+- `startFree(mode:cameraAngle:clubName:tags:) throws`: one untargeted block; `.sessionInProgress` when a session is already active (in this controller or the store)
+- `activeSession(in:) throws -> PracticeSession?`: newest `.active` session, for the resume prompt; filters in Swift (a `#Predicate` capturing an enum constant isn't supported on this SDK)
+- `resume(_:) throws`: re-owns a session fetched via another context; resolves the active block from `activeBlockOrder` (falling back to the first incomplete block if that order no longer exists), advances past it if strict and already complete, and takes `activeTags` from it or, with no active block, from the most recent block by order; `.sessionInProgress`, `.notActive`
+- `recordShot(source:) -> ShotRecord?`: camera → `repsCounted`, manual (+1) → `repsManualAdjust`; nil when ignored; strict auto-advance and the shot share one save, in `countChanged` → `targetReached` → `blockChanged`/`planEnded` order
+- `minusOne()`: deletes the latest shot, lowers `repsManualAdjust`, never below zero; removes the clip only if the save that deleted the shot succeeds; right after a strict auto-advance, reopens the block that ended
+- `advance()`: next block (mandatory: next in order; free: next incomplete and targeted, wrapping), or `planEnded`
+- `select(_:) -> Bool`: block strip jump; false in free sessions, with mandatory order, or onto a complete strict block
+- `setClub(_:)`, `setTags(_:)`: free sessions start a new block unless the current one is unused; planned sessions carry tags across blocks
+- `finish()`: `finished` + `endedAt`, drops unused free blocks, discards the session instead if that leaves none; `discard()`: deletes the session and, only if that save succeeds, its clips
 
 ## ShotDetector/ShotEvent.swift
 Output type of the ShotDetector framework (spec §4). The framework must never import AVFoundation, AVKit, UIKit, SwiftUI or CoreMedia (ADR 0010).
@@ -102,6 +132,18 @@ In-memory store: order indexes, snapshots, delete rules (BagClub has no relation
 
 ## RepsTests/ExportTests.swift
 Export key sets, ordering (including sort-key ties), finished-only, nil omission, ISO dates (ms rounding, sub-ms and pre-epoch dates), clip file names, round trip, determinism.
+
+## RepsTests/SessionTestSupport.swift
+- `TestClock` (1 s per read), `ClipSpy` (records clip removals), `EventLog` (collects `SessionEvent`s), `TestSaveError` (thrown by an injected `saveHook` to test save-gated cleanup)
+
+## RepsTests/SessionControllerTests.swift
+Planned sessions: start, counting, minimums vs strict, mandatory vs free order, skip, last block, zero-target blocks, plan edits, −1 (Q21), tags, finish, discard. Also: refusing a second active session (in-controller and store-wide), re-owning a plan fetched from another context, and clip removal skipped when a save fails.
+
+## RepsTests/FreeSessionTests.swift
+Free sessions: untargeted blocks, club/tag changes start blocks (in place when unused), navigation off, finish drops unused blocks, finish discards a session left with none.
+
+## RepsTests/SessionResumeTests.swift
+On-disk kill and resume (autosave off), newest-active lookup, resume after a strict plan ended. Also: re-owning a session fetched from another context, tags from the most recent block with no active block, advancing off a completed strict block on resume, and falling back when `activeBlockOrder` is stale.
 
 ## DetectorEvalTests/MLData.swift
 Locates the hitreg-ml checkout (ADR 0007).

@@ -45,6 +45,8 @@ nonisolated struct ExportSession: Codable, Equatable, Sendable {
     var startedAt: Date
     var endedAt: Date?
     var cameraAngle: CameraAngle
+    var isStrictCount: Bool
+    var isOrderMandatory: Bool
     var blocks: [ExportBlockResult]
 }
 
