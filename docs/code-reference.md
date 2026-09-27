@@ -214,6 +214,17 @@ Bulk library writes (F15, §5.3c).
 - `restore(_:in:)`: writes snapshots back, skipping deleted shots
 - `delete(ids:in:clipFiles:) throws -> [UUID]`: deletes the rows, saves, then `removeClip` per clip file (ADR 0013 order); block counters untouched
 
+## Reps/Library/ClipPlayback.swift
+Clip player math and copy (F27, §5.3b); pure, tested.
+- `PlaybackSpeed` (1×, ½×, ¼×): `next` cycles, `title`
+- `ClipEventKind` (address, top, impact, finish), `ClipEvent(kind:seconds:)`
+- `ClipPlayback.frameDuration(nominalFrameRate:)`: 1/rate, 60 fps fallback
+- `ClipPlayback.stepped(from:by:frameDuration:duration:)`: middle of the frame `count` away, clamped to the clip
+- `ClipPlayback.isAtEnd`, `fraction`, `seconds(atFraction:duration:)`, `timeTitle` ("2.098"), `filmstripTimes(count:duration:)`
+- `ClipPlayback.events(duration:impactOffset:)`: impact at `assumedImpactOffset` (3 s, §5.8) when inside the clip; the rest #27
+- `ClipPlayback.snapped(_:to:duration:trackWidth:tolerance:)`: jump to a mark released within `tolerance` points
+- `ClipPlayback.label(_:)`: "Gap wedge · face-on · tempo 3.1 : 1"
+
 ## Reps/Bag/BagCatalog.swift
 Standard clubs for the bag grid (Figma 08) and the default bag (F19); nonisolated.
 - `Group(title:clubs:)`; `groups`: Woods, Hybrids, Irons, Wedges, Putter; `allClubs`: flattened; `defaultBag`: the common 14 for onboarding (#5) to seed
@@ -407,6 +418,9 @@ Filter AND semantics, ordering, options and tile copy (fixed UTC calendar, en_US
 
 ## RepsTests/LibraryEditsTests.swift
 Bulk edits, undo snapshots and delete order against an in-memory store with `ClipSpy`.
+
+## RepsTests/ClipPlaybackTests.swift
+- Speed cycle, frame duration, frame step and clamping, end, fraction/seconds, time title, filmstrip times, impact mark, snapping, label pill
 
 ## RepsTests/ClipStorageTests.swift
 Clip usage summing; `ClipURLTests`: valid clip path resolution, unsafe names rejected.
