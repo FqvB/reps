@@ -163,7 +163,7 @@ All in the `DetectorEval` plan (target `DetectorEvalTests`); nothing in `Unit` (
 
 ## Risks / unresolved
 
-- **Ball region for footage (Q18).** The ball presence detector (§5.2) needs the user's tap. The harness passes each `EvalVideo` to the `makeDetector` factory, so #14/#16 can load a per-video region from wherever Q18 decides; nothing here blocks that, but #14 can't be scored until it's answered.
+- **Ball region for footage (Q18).** The ball presence detector (§5.2) needs the user's tap. The harness passes each `EvalVideo` to the `makeDetector` factory, so #14/#16 can load a per-video region from wherever Q18 decides; nothing here blocks that, but #14 can't be scored until it's answered. (Superseded: detectors auto-locate the ball, see ADR 0011.)
 - **Small range test set (Q19).** 23 swings, 16 practice, 7 motion in 22 videos. One miss = −4 % recall; "≤1 false per 50" can't be judged on 23 positives. #21 has to decide what set it gates on.
 - **Frame contract binds #13.** `DetectorInput` (15 fps, short side 480, 420f) is now what the camera pipeline must deliver. If #13 finds a reason to change it, change the constants in one place and re-run DetectorEval.
 - **Orientation.** Range clips here are stored upright (orientation `.up`); rotated clips get `.right/.left/.down` exactly like hitreg-ml's extractor. The pixel buffer is *not* rotated, the detector gets the orientation. Ball-patch code (#14) must use the same convention as the live camera buffers (#13).

@@ -17,3 +17,5 @@ Spec §4 needs ShotDetector to run against saved video in tests; §7 needs preci
 
 ## Consequences
 Every detector gets the same scoreboard with no AVFoundation in its code. The camera pipeline (#13) is bound to the `DetectorInput` contract. Accuracy thresholds are applied separately (#21).
+- #13 sets the capture connection's `videoRotationAngle` so frames arrive upright (orientation `.up`); detectors still honour `VideoFrame.orientation`. (Eval footage is all stored upright, so rotation handling is untested.)
+- `VideoFrame.time` is monotonic seconds with an arbitrary origin (live capture uses host-clock time, eval starts at 0). Detectors measure durations with `time` differences, never frame counts, since spec §5.6 may drop the rate under thermal load.

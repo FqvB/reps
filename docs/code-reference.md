@@ -80,7 +80,9 @@ The only AVFoundation code on the detector path; test target only.
 
 ## DetectorEvalTests/Harness/EvalRunner.swift
 - `EvalRunner(window:frameRate:shortSide:)`: window defaults to 0.5 s
-- `run(_ name:on:makeDetector:) async throws -> EvalReport`: decodes each video, feeds a fresh detector, moves labels onto the decoder clock by frame number, scores
+- `run(_ name:on:makeDetector:) async throws -> EvalReport`: decodes each video, feeds a fresh detector, moves labels onto the decoder clock by frame number, scores; throws `RunError.nonIncreasingFrameTimes` if a video's frame times aren't strictly increasing
+- `labelTimes(_:frameTimes:) -> [Double]`: pure frame-number → timestamp mapping, CSV seconds past the end
+- `isStrictlyIncreasing(_:) -> Bool`: guards the frame-time mapping is valid
 - `VideoResult`: one video's score plus decoded/sampled frame counts
 
 ## DetectorEvalTests/Harness/EvalReport.swift
@@ -94,7 +96,7 @@ The only AVFoundation code on the detector path; test target only.
 ## DetectorEvalTests/Detectors/LabelOracle.swift
 - `LabelOracle(video:profile:)`: test-only `ShotDetecting` that fires on the first sampled frame at/after each positive label
 
-## DetectorEvalTests/CSVTests.swift, EventMatcherTests.swift, EvalMetricsTests.swift
+## DetectorEvalTests/CSVTests.swift, EventMatcherTests.swift, EvalMetricsTests.swift, EvalRunnerTests.swift
 Pure harness logic, no footage.
 
 ## DetectorEvalTests/EvalDatasetTests.swift
