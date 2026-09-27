@@ -159,6 +159,14 @@ Numbers and copy for the session summary (Figma 12, F23); pure values, unit-test
 - `SummaryBlock(order:clubName:note:tags:counted:manualAdjust:target:clipCount:tempos:)`, `SummaryBar(fill:surplusFrom:)`, `SummaryRow`, `SummaryStat`, `SessionSummary(subtitle:headline:caption:rows:stats:)`
 - `SummaryDisplay.summary(planName:mode:blocks:elapsed:)`: rows by order (free sessions hide unused blocks, add tags to titles); `overall(_:mode:)` (capped %, or total count without targets); `row(_:mode:isFree:)`; `percent(_:isComplete:)` (rounded, ≤ 99 % until complete); `stats(_:)` (clips, avg tempo, Σ |manualAdjust|); `tempo(_:)`; `duration(_:)`
 
+## Reps/Voice/VoiceLines.swift
+Session event → spoken text (F6, §5.7); pure, nonisolated, English only (Q12).
+- `Phrase(text:kind:)`: `Kind` count (goes stale on a newer count) / callout (never dropped)
+- `VoiceLines.phrases(for:announceCount:) -> [Phrase]`: `sessionSaved`/`targetReached`/`strictStop`/`planEnded` line constants (all but `sessionSaved` PLACEHOLDER, Q39); `announceCount` silences only `.countChanged`; `TODO(#27)` tempo on the count
+- `count(_:)`: digits, so the synthesizer reads them as words
+- `block(clubName:target:done:)`: "9 iron. 30 reps." / "…1 rep." / untargeted "9 iron." / returning "9 iron. 12 of 30." (PLACEHOLDER, Q39)
+- `spokenClub(_:)`: `BagCatalog.key` wedge abbreviations (PW/GW/SW/LW) spelled out; everything else trimmed as stored
+
 ## Reps/Plans/PlanDraft.swift
 The plan editor's working copy (spec F1, F24, F28); nonisolated values, nothing persisted.
 - `BlockDraft(id:clubName:targetReps:note:)`: `repsRange` 1...999, `defaultReps` 30; `trimmedClubName`, `storedNote` (trimmed, nil if blank), `isValid`, `adjustReps(by:)` clamps
@@ -487,6 +495,9 @@ Continue/finish titles, status pills, camera note, features.
 
 ## RepsTests/BagSeedingTests.swift
 Default bag seeding: empty store, second run, existing bag untouched.
+
+## RepsTests/VoiceLinesTests.swift
+Count text, announceCount gating, block callout wording (targeted/single/returning/untargeted), wedge names, target-reached strict vs minimums, plan end, session saved, callouts always speak with announceCount off.
 
 ## DetectorEvalTests/MLData.swift
 Locates the hitreg-ml checkout (ADR 0007).
