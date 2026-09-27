@@ -29,7 +29,7 @@ Stored and exported enums; raw values are frozen (ADR 0012).
 Pure completion math (spec §5.1, F21), nonisolated.
 - `BlockTally(counted:manualAdjust:target:)`: `done` = max(0, counted + manualAdjust); `target` nil = free block
 - `Completion.block(_:) -> Double?`: done / target, uncapped; nil without a positive target
-- `Completion.isComplete(_:) -> Bool`: done ≥ target
+- `Completion.isComplete(_:) -> Bool`: done ≥ target; false without a positive target
 - `Completion.session(_:) -> Double?`: total done / total target over targeted blocks; nil if none
 
 ## Reps/Model/BagClub.swift
@@ -57,6 +57,7 @@ Pure completion math (spec §5.1, F21), nonisolated.
 ## Reps/Model/RepsSchema.swift
 - `RepsSchemaV1`: VersionedSchema 1.0.0 with the six models
 - `RepsMigrationPlan`: schemas `[RepsSchemaV1]`, no stages yet
+- `RepsSchemaCurrent`: alias for the schema the app actually runs (`RepsSchemaV1` today)
 
 ## Reps/Export/ExportDocument.swift
 JSON export format v1 (ADR 0012); property names are the JSON keys.
@@ -73,8 +74,8 @@ JSON export format v1 (ADR 0012); property names are the JSON keys.
 
 ## Reps/Persistence/RepsStore.swift
 Builds the SwiftData container for the app and tests.
-- `RepsStore.models`: the `@Model` types (`RepsSchemaV1.models`)
-- `RepsStore.makeContainer(inMemory:) throws -> ModelContainer`: container over `RepsSchemaV1` with `RepsMigrationPlan`; `inMemory: true` for tests
+- `RepsStore.models`: the `@Model` types (`RepsSchemaCurrent.models`)
+- `RepsStore.makeContainer(inMemory:) throws -> ModelContainer`: container over `RepsSchemaCurrent` with `RepsMigrationPlan`; `inMemory: true` for tests
 
 ## ShotDetector/ShotEvent.swift
 Output type of the ShotDetector framework (spec §4). The framework must never import AVFoundation, AVKit, UIKit, SwiftUI or CoreMedia (ADR 0010).
@@ -91,12 +92,13 @@ What detectors are fed.
 
 ## RepsTests/RepsStoreTests.swift
 - `inMemoryContainerOpens`, `schemaHasEveryModel`, `schemaIsVersionOne`
+- `schemaShapeIsPinned`: exact attribute and relationship name sets per entity, so a silent schema change fails loudly (ADR 0012)
 
 ## RepsTests/CompletionTests.swift
 Block and session completion: uncapped, manual adjust, clamping, missing targets, skipped blocks.
 
 ## RepsTests/ModelTests.swift
-In-memory store: order indexes, snapshots, delete rules, enum/tag persistence, status predicate.
+In-memory store: order indexes, snapshots, delete rules (BagClub has no relationships, so it isn't covered here), enum/tag persistence, status predicate.
 
 ## RepsTests/ExportTests.swift
 Export key sets, ordering (including sort-key ties), finished-only, nil omission, ISO dates (ms rounding, sub-ms and pre-epoch dates), clip file names, round trip, determinism.

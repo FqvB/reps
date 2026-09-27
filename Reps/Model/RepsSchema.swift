@@ -11,3 +11,6 @@ enum RepsMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] { [RepsSchemaV1.self] }
     static var stages: [MigrationStage] { [] }
 }
+
+// The schema the app and store actually run. Bump when RepsSchemaV2 exists.
+typealias RepsSchemaCurrent = RepsSchemaV1

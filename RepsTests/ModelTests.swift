@@ -98,20 +98,6 @@ struct ModelTests {
         #expect(plan.sessions.isEmpty)
     }
 
-    @Test func deletingBagClubLeavesPlansAndShots() throws {
-        let club = BagClub(name: "8 iron", sortOrder: 0)
-        context.insert(club)
-        _ = makeSession(plan: makePlan())
-        try context.save()
-
-        context.delete(club)
-        try context.save()
-
-        #expect(try context.fetchCount(FetchDescriptor<PlanBlock>()) == 2)
-        let shot = try #require(try context.fetch(FetchDescriptor<ShotRecord>()).first)
-        #expect(shot.clubName == "8 iron")
-    }
-
     @Test func enumsAndTagsPersist() throws {
         let session = PracticeSession(plan: nil, mode: .putting, cameraAngle: .none)
         context.insert(session)
@@ -134,16 +120,16 @@ struct ModelTests {
     }
 
     @Test func activeSessionsAreFetchableByStatus() throws {
-        let active = PracticeSession(plan: nil, mode: .rangeCounter, cameraAngle: .faceOn)
+        let activeSession = PracticeSession(plan: nil, mode: .rangeCounter, cameraAngle: .faceOn)
         let done = PracticeSession(plan: nil, mode: .rangeCounter, cameraAngle: .faceOn)
         done.status = .finished
-        context.insert(active)
+        context.insert(activeSession)
         context.insert(done)
         try context.save()
 
-        let activeRaw = SessionStatus.active
-        let descriptor = FetchDescriptor<PracticeSession>(predicate: #Predicate { $0.status == activeRaw })
-        #expect(try context.fetch(descriptor).map(\.id) == [active.id])
+        let active = SessionStatus.active
+        let descriptor = FetchDescriptor<PracticeSession>(predicate: #Predicate { $0.status == active })
+        #expect(try context.fetch(descriptor).map(\.id) == [activeSession.id])
     }
 
     @Test func sessionCompletionUsesSnapshots() throws {

@@ -10,6 +10,8 @@ Answer inline, then move the decision to an ADR if it's architectural. Settled q
 | Q20 | Swing classifier (ADR 0007) was trained on 2 s windows at 30 fps (60 poses); DetectorInput is 15 fps. | #18 | #18 must retrain at 15 fps, resample poses, or get 30 fps pose frames. |
 | Q21 | Does −1 delete the latest ShotRecord (and its clip) or only decrement `repsManualAdjust`? | #8 | Model supports both. Leaning: only decrement; the shot list stays what the camera/taps produced. |
 | Q22 | Session completion: may surplus on one block cover a shortfall on another (45/30 + 15/30 = 100 %)? | #11 | Spec §5.1 literal says yes (total done / total target), implemented that way in #4. Alternative: cap each block at its target for the session number. |
+| Q23 | Can a `#Predicate` filter on `tags: [String]` (ShotRecord/BlockResult) against the SQLite store? | #24 | Spike early; fallback a Tag model (many-to-many) or in-memory filtering after other predicates. |
+| Q24 | Should a session snapshot `isStrictCount`, `isOrderMandatory` and the active block, so resume works after its plan is edited or deleted? | #8 | Alternative: block deleting a plan with an active session. |
 
 ## Resolved
 
