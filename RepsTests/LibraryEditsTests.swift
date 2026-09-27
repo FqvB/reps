@@ -108,6 +108,16 @@ struct LibraryEditsTests {
         #expect(spy.removedSessions.isEmpty)
     }
 
+    @Test func deleteNeverPassesAnInvalidClipNameToFileRemoval() throws {
+        let bad = try shot()
+        bad.clipFileName = "../escape.mov"
+        try context.save()
+        let spy = ClipSpy()
+        try LibraryEdits.delete(ids: [bad.id], in: context, clipFiles: spy)
+        #expect(try allShots().isEmpty)
+        #expect(spy.removedClips.isEmpty)
+    }
+
     @Test func deleteDoesNotChangeBlockCounts() throws {
         block.repsCounted = 2
         let a = try shot()

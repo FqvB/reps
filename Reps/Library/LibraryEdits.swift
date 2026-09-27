@@ -83,7 +83,10 @@ enum LibraryEdits {
         let wanted = Array(ids)
         let shots = try context.fetch(FetchDescriptor<ShotRecord>(predicate: #Predicate { wanted.contains($0.id) }))
         let files: [(fileName: String, sessionID: UUID)] = shots.compactMap { shot in
-            guard let fileName = shot.clipFileName, let sessionID = shot.blockResult?.session?.id else { return nil }
+            // Never hand a malformed stored name to file deletion.
+            guard let fileName = shot.clipFileName, let sessionID = shot.blockResult?.session?.id,
+                ClipStorage.clipURL(fileName: fileName, sessionID: sessionID) != nil
+            else { return nil }
             return (fileName, sessionID)
         }
         let deleted = shots.map(\.id)
