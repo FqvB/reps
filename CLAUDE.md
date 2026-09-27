@@ -88,4 +88,5 @@ xcrun swift-format lint --strict --recursive --parallel Reps ShotDetector RepsTe
 - No long AI-written descriptions, bullet lists, or summaries in commits.
 - No attribution: no `Co-Authored-By`, no `Claude-Session`, no "Generated with Claude Code" in commits or PRs.
 - PR: title same style, body is 1–3 lines plus `Closes #N`.
+- Until the MVP ships, auto-merge your own PRs into `main` once local verification passes and any required review is fixed: `gh pr merge --squash --delete-branch`, then pull `main`.
 - Update `docs/roadmap.md` status when an issue closes. Add new questions to `docs/open-questions.md` and decisions to `docs/adr/`.
