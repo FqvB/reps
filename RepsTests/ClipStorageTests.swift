@@ -36,3 +36,19 @@ struct ClipStorageTests {
                 == URL.documentsDirectory.standardizedFileURL.path)
     }
 }
+
+struct ClipURLTests {
+    private let root = URL(filePath: "/clips", directoryHint: .isDirectory)
+    private let session = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+
+    @Test func bareMovNameResolvesUnderTheSessionFolder() {
+        let url = ClipStorage.clipURL(fileName: "abc.mov", sessionID: session, root: root)
+        #expect(url?.path(percentEncoded: false) == "/clips/11111111-2222-3333-4444-555555555555/abc.mov")
+        #expect(ClipStorage.clipURL(fileName: "ABC.MOV", sessionID: session, root: root) != nil)
+    }
+
+    @Test(arguments: ["", ".mov", "../x.mov", "a/b.mov", "..", "a\\b.mov", "clip.mp4", "a:b.mov", "a\nb.mov"])
+    func unsafeNamesAreRejected(_ name: String) {
+        #expect(ClipStorage.clipURL(fileName: name, sessionID: session, root: root) == nil)
+    }
+}

@@ -85,6 +85,7 @@ Clip folder size/count for the Settings Storage row.
 - `ClipUsage(bytes:count:)`: `.zero`
 - `ClipStorage.clipsDirectory`: `Documents/clips` (ADR 0006 root; #22 writes clips there)
 - `ClipStorage.usage(at:fileManager:) -> ClipUsage`: sync `FileManager` enumeration of `.mov` files; call off the main actor; a missing folder is `.zero`
+- `ClipStorage.clipURL(fileName:sessionID:root:) -> URL?`: `root/<sessionID>/<fileName>`; nil unless a bare `.mov` name (no separators, control chars, leading dot)
 
 ## Reps/Settings/SettingsCopy.swift
 Copy for the Settings screen; pure, unit-tested.
@@ -204,6 +205,14 @@ Grid order, filter choices and tile copy (Figma 04); pure, unit-tested.
 - `LibrarySessionOption(id:title:startedAt:)`
 - `LibraryDisplay.visible(_:filter:hidden:calendar:locale:)`: filtered, newest first (ties by id), minus pending deletes
 - `countTitle`, `clubOptions(_:bag:)` (bag order, then others A–Z), `tagOptions` (most used first; also autocomplete), `monthOptions`, `sessionOptions`, `sessionTitle` ("Wedge day · Sep 16"), `monthTitle` (year only when not this year), `angleOptionTitle`, `tagChipTitle` ("fade +1"), `tileTitle` ("GW · face-on"), `tileDate` (Today/weekday/date), `tempo` ("3.1"), `tagLine`, `favouriteTarget` (false only when all are favourites), `undoMessage`
+
+## Reps/Library/LibraryEdits.swift
+Bulk library writes (F15, §5.3c).
+- `LibraryClip.init?(_: ShotRecord)`: nil without `clipFileName`; session title via `SessionDisplay.title`, angle from the session (`.none` without one)
+- `ShotSnapshot`, `LibraryUndo(message:kind:)` (`.restore([ShotSnapshot])` / `.delete(Set<UUID>)`)
+- `LibraryEdits.setClub/addTag/removeTag/setFavourite(... on:in:) throws -> [ShotSnapshot]`: save, or roll back and rethrow; blank club/tag is a no-op (`[]`)
+- `restore(_:in:)`: writes snapshots back, skipping deleted shots
+- `delete(ids:in:clipFiles:) throws -> [UUID]`: deletes the rows, saves, then `removeClip` per clip file (ADR 0013 order); block counters untouched
 
 ## Reps/Bag/BagCatalog.swift
 Standard clubs for the bag grid (Figma 08) and the default bag (F19); nonisolated.
@@ -372,6 +381,12 @@ Export key sets, ordering (including sort-key ties), finished-only, nil omission
 
 ## RepsTests/LibraryDisplayTests.swift
 Filter AND semantics, ordering, options and tile copy (fixed UTC calendar, en_US).
+
+## RepsTests/LibraryEditsTests.swift
+Bulk edits, undo snapshots and delete order against an in-memory store with `ClipSpy`.
+
+## RepsTests/ClipStorageTests.swift
+Clip usage summing; `ClipURLTests`: valid clip path resolution, unsafe names rejected.
 
 ## RepsTests/SessionTestSupport.swift
 - `TestClock` (1 s per read), `ClipSpy` (records clip removals), `EventLog` (collects `SessionEvent`s), `TestSaveError` (thrown by an injected `saveHook` to test save-gated cleanup)
