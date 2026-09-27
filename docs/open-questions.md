@@ -6,7 +6,6 @@ Answer inline, then move the decision to an ADR if it's architectural. Settled q
 
 | # | Question | Blocks | Notes / leaning |
 |---|---|---|---|
-| Q17 | Short putting clip (~20 putts, phone on the ground face-on) to set the similarity threshold | #16 | Doesn't block #14. With ADR 0008 no waggle/occlusion script is needed. |
 
 ## Resolved
 
@@ -27,4 +26,5 @@ Answer inline, then move the decision to an ADR if it's architectural. Settled q
 | Q14 | Putting approach | Phone on the ground, face-on. Ball gone ≥ 300 ms = stroke, no pose, no occlusion state. A pickup counts too (fix with −1). | ADR 0008 |
 | Q15 | Re-tee/pickup ground truth | `motion` rows are the re-tee/pickup events. They must not count, and they're the hard negatives. | ADR 0007 |
 | Q16 | Where the Create ML model lives | Copied into this repo as `ml/models/SwingClassifier_hitreg_ml1.mlmodel` (4 MB). The suffix names its hitreg-ml source version. | ADR 0007 |
+| Q17 | Putting eval footage | Recorded 2026-09-27: one indoor clip, 19 putts + 15 motion + 3 pickup, in hitreg-ml `data/putting/` (`tools/label_putt.py`, kinds putt/pickup/motion). Threshold gets set in #16. | ADR 0007 |
 | Q13 | Which Figma frames are current | The Figma file has one page for this project, and all of it is current. | docs/design.md |
