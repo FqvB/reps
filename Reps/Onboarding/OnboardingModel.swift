@@ -64,7 +64,9 @@ final class OnboardingModel {
 
     func rowAction(for medium: CaptureMedium) -> PermissionRowAction {
         switch state(of: medium) {
-        case .notDetermined: .request
+        // The mic prompt is one-shot; spend it only when a clip could carry audio (ADR 0014).
+        case .notDetermined:
+            medium == .microphone && !(camera == .granted && settings.recordClipAudio) ? .none : .request
         case .denied: .openSettings
         case .granted, .restricted: .none
         }

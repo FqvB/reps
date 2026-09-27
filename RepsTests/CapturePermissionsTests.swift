@@ -15,6 +15,10 @@ struct CapturePermissionsTests {
         #expect(PermissionState(status) == expected)
     }
 
+    @Test func unknownStatusFailsClosed() {
+        #expect(PermissionState(AVAuthorizationStatus(rawValue: 99)!) == .denied)
+    }
+
     @Test func mediaTypes() {
         #expect(CaptureMedium.camera.mediaType == .video)
         #expect(CaptureMedium.microphone.mediaType == .audio)

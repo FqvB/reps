@@ -131,6 +131,16 @@ final class OnboardingModelTests {
         #expect(decided.rowAction(for: .microphone) == .none)
     }
 
+    @Test func microphoneRowOnlyAsksWhenAudioIsUsable() {
+        let cameraDenied = model(FakePermissions(camera: .denied, microphone: .notDetermined))
+        #expect(cameraDenied.rowAction(for: .microphone) == .none)
+        let usable = model(FakePermissions(camera: .granted, microphone: .notDetermined))
+        #expect(usable.rowAction(for: .microphone) == .request)
+        settings.recordClipAudio = false
+        let audioOff = model(FakePermissions(camera: .granted, microphone: .notDetermined))
+        #expect(audioOff.rowAction(for: .microphone) == .none)
+    }
+
     @Test func requestOnlyPromptsWhileUndetermined() async {
         let fake = FakePermissions(camera: .denied)
         fake.answers = [.microphone: .granted]
