@@ -8,10 +8,7 @@ Answer inline, then move the decision to an ADR if it's architectural. Settled q
 |---|---|---|---|
 | Q19 | The range test split has 23 swings, 16 practice, 7 motion. Enough to gate ≥95 % recall and ≤1 false per 50? | #21 | No: one miss is −4 %. Leaning: record more range footage for the test split, or gate on test + val once the classifier is frozen. Two test swings hit < 2 s into their clip; a detector warm-up (e.g. ball lock ~1 s) can miss them for trimming reasons, so check miss times before reading recall. |
 | Q20 | Swing classifier (ADR 0007) was trained on 2 s windows at 30 fps (60 poses); DetectorInput is 15 fps. | #18 | #18 must retrain at 15 fps, resample poses, or get 30 fps pose frames. |
-| Q21 | Does −1 delete the latest ShotRecord (and its clip) or only decrement `repsManualAdjust`? | #8 | Model supports both. Leaning: only decrement; the shot list stays what the camera/taps produced. |
-| Q22 | Session completion: may surplus on one block cover a shortfall on another (45/30 + 15/30 = 100 %)? | #11 | Spec §5.1 literal says yes (total done / total target), implemented that way in #4. Alternative: cap each block at its target for the session number. |
-| Q23 | Can a `#Predicate` filter on `tags: [String]` (ShotRecord/BlockResult) against the SQLite store? | #24 | Spike early; fallback a Tag model (many-to-many) or in-memory filtering after other predicates. |
-| Q24 | Should a session snapshot `isStrictCount`, `isOrderMandatory` and the active block, so resume works after its plan is edited or deleted? | #8 | Alternative: block deleting a plan with an active session. |
+| Q23 | Can a `#Predicate` filter on `tags: [String]` (ShotRecord/BlockResult) against the SQLite store? | #24 | Tag filtering is required (owner). Spike first in #24; if the predicate fails, use a Tag model (many-to-many) or filter in memory after the other predicates. |
 
 ## Resolved
 
@@ -34,4 +31,7 @@ Answer inline, then move the decision to an ADR if it's architectural. Settled q
 | Q16 | Where the Create ML model lives | Copied into this repo as `ml/models/SwingClassifier_hitreg_ml1.mlmodel` (4 MB). The suffix names its hitreg-ml source version. | ADR 0007 |
 | Q17 | Putting eval footage | Recorded 2026-09-27: one indoor clip, 19 putts + 15 motion + 3 pickup, in hitreg-ml `data/putting/` (`tools/label_putt.py`, kinds putt/pickup/motion). Threshold gets set in #16. | ADR 0007 |
 | Q18 | Ball region for eval footage | Not needed: detectors auto-locate the ball (putting: newest ball still ~1 s anywhere; range: near the feet via pose). | ADR 0011 |
+| Q21 | What −1 does | Deletes the latest ShotRecord (and its clip file) when there is one, which lowers the count; with no shot to delete it decrements `repsManualAdjust`. Never below zero. | #8 plan |
+| Q22 | Can surplus on one block cover another | No. Session completion caps each block at its target (45/30 + 15/30 = 75 %); per-block completion still shows over-target. Change `Completion` in #11. | #11 plan |
+| Q24 | Snapshot plan rules on the session | Yes: the session keeps `isStrictCount`, `isOrderMandatory` and the active block, so resume works after the plan is edited or deleted. | #8 plan |
 | Q13 | Which Figma frames are current | The Figma file has one page for this project, and all of it is current. | docs/design.md |
