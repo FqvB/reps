@@ -16,7 +16,7 @@ App entry point; opens the SwiftData store and shows the root view.
 
 ## Reps/App/RootView.swift
 Root TabView (Plans, Library), the session host, and the onboarding gate.
-- `RootView`: owns one `SessionController` (made on first use); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`, reading the default camera angle from `AppSettings().cameraAngle(for:)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); voice hook is `TODO(#10)`; shows `OnboardingView(permissions: DevicePermissions())` instead of the tabs while `AppSettings.hasCompletedOnboarding` is false (the resume prompt waits for the tabs)
+- `RootView`: owns one `SessionController` (made on first use); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`, reading the default camera angle from `AppSettings().cameraAngle(for:)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); voice hook is `TODO(#10)`; shows `OnboardingView(permissions: DevicePermissions())` instead of the tabs while `AppSettings.hasCompletedOnboarding` is false (the resume prompt waits for the tabs); Library tab hosts `LibraryView` (#24)
 
 ## Reps/Model/ModelEnums.swift
 Stored and exported enums; raw values are frozen (ADR 0012).
@@ -234,7 +234,7 @@ Bag writes for Settings and onboarding (F19); every write saves.
 - `seedDefaultBag(in:) throws -> Bool`: inserts `BagCatalog.defaultBag` in catalog order only when there are no BagClub rows at all; false otherwise (idempotent, #5)
 
 ## Reps/UI/Theme/Theme.swift
-Literal Figma values (docs/design.md): colours (`ink`, `secondaryText`, `accent`, `accentDeep`, `card`, `fill`, `hairline`, `sheet`, `danger`, `illustration` (0x8A9A84), `ballBox` (0xE6D35A)…), `Typography` (text styles where Figma matches their default size), `Spacing`, `Radius`.
+Literal Figma values (docs/design.md): colours (`ink`, `secondaryText`, `accent`, `accentDeep`, `card`, `fill`, `hairline`, `sheet`, `danger`, `thumbnail` (0x8A9A84), `favourite` (0xE6D35A), `illustration` (0x8A9A84), `ballBox` (0xE6D35A)…), `Typography` (text styles where Figma matches their default size), `Spacing`, `Radius`.
 
 ## Reps/UI/Components/*.swift
 Shared by every screen.
@@ -292,8 +292,31 @@ Settings → My bag.
 - `BagSettingsView`: hosts `BagEditorView` in a `ScrollView`; toolbar "Reorder" opens `BagOrderSheet`
 - `BagOrderSheet`: `List` in edit mode over the in-bag clubs, `onMove` writes `BagLibrary.move`
 
-## Reps/UI/Library/LibraryPlaceholderView.swift
-- `LibraryPlaceholderView`: `ContentUnavailableView` until #24
+## Reps/UI/Library/LibraryView.swift
+Figma 04 Library tab.
+- `LibraryView(clipFiles:)`: `@Query` shots with `clipFileName != nil` by timestamp desc (the only SQL predicate, Q23); search + `LibraryFilterBar`; 2-column `LazyVGrid` of `ClipTile`; tap pushes `ClipDetailPlaceholderView`, long-press/"Select" starts bulk mode (`LibraryBulkBar`, `LibraryTagSheet`); Undo toast per bulk action; delete is hidden until the toast ends, then `LibraryEdits.delete` + thumbnail cleanup; `NoClipFiles` until #22
+- `PreviewData.libraryContainer()` (DEBUG): 8 clips without files
+
+## Reps/UI/Library/ClipTile.swift
+- `ClipTile(clip:isSelecting:isSelected:)`: thumb (★, play mark, selection check), club · angle, date · tempo, tags; missing file shows `video.slash`
+
+## Reps/UI/Library/ClipThumbnails.swift
+- `ClipThumbnails` (actor, `.shared`): `image(shotID:clipURL:) async -> UIImage?` memory → `Caches/thumbnails/<id>.jpg` → middle frame via `AVAssetImageGenerator` (max 480 px), cached; nil when the file is missing; `remove(_:)` drops both caches
+
+## Reps/UI/Library/LibraryFilterBar.swift
+- `LibraryFilterBar(filter:clubs:tags:months:sessions:)`: Figma 04 chips as menus (Club, Angle, Date, ★ toggle, Tag multi-toggle, Session) + Clear
+
+## Reps/UI/Library/LibraryTagSheet.swift
+- `LibraryTagSheet(selectedCount:onSelection:suggestions:onAdd:onRemove:)`: add (field + history suggestions) or remove one tag; applies and closes
+
+## Reps/UI/Library/LibraryBulkBar.swift
+- `LibraryBulkBar(clubs:isEnabled:favouriteTarget:onClub:onTags:onFavourite:onDelete:)`: bottom bar in bulk mode (no Figma frame)
+
+## Reps/UI/Library/ClipDetailPlaceholderView.swift
+- `ClipDetailPlaceholderView(clip:)`: `TODO(#25)` player
+
+## Reps/UI/Library/LibraryTheme.swift
+Figma 04 values: `Theme.Typography.filterChip/filterChipSelected/resultCount/tileTitle/tileDetail/tileTempo/tileStar/tilePlay`, `Theme.Spacing.gridGap`, `Theme.Radius.tile`, `LibraryMetrics.thumbnailHeight/playSize`
 
 ## Reps/UI/Onboarding/OnboardingView.swift
 Figma 07–09 (F19, F20). Shown by `RootView` until onboarding completes.

@@ -26,7 +26,7 @@ struct RootView: View {
                 PlansView(onStartPlan: start(plan:), onStartFreeSession: startFree)
             }
             Tab("Library", systemImage: "film.stack") {  // PLACEHOLDER: Library tab icon
-                LibraryPlaceholderView()
+                LibraryView()
             }
         }
         .tint(Theme.accent)
