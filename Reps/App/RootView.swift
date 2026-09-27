@@ -55,8 +55,7 @@ struct RootView: View {
 
     private func start(plan: PracticePlan) {
         do {
-            // TODO(#6): use the default camera angle from Settings.
-            try controller().start(plan: plan, cameraAngle: .faceOn)
+            try controller().start(plan: plan, cameraAngle: AppSettings().cameraAngle(for: plan.mode))
         } catch {
             startFailed = true
         }
@@ -65,8 +64,9 @@ struct RootView: View {
     private func startFree() {
         let club = clubs.first(where: \.isInBag)?.name ?? "7 iron"  // PLACEHOLDER: free-session club with an empty bag
         do {
-            // PLACEHOLDER: free sessions start in Range mode until there's a mode choice (Q28). TODO(#6): default angle.
-            try controller().startFree(mode: .rangeCounter, cameraAngle: .faceOn, clubName: club)
+            // PLACEHOLDER: free sessions start in Range mode until there's a mode choice (Q28).
+            try controller().startFree(
+                mode: .rangeCounter, cameraAngle: AppSettings().cameraAngle(for: .rangeCounter), clubName: club)
         } catch {
             startFailed = true
         }
