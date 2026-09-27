@@ -17,3 +17,4 @@ F2 says blocks advance at target, F21 says targets are minimums, and F22 adds a 
 
 ## Consequences
 Resume never depends on the plan. Detector accuracy stays readable from `repsCounted` vs `repsManualAdjust`. Clip deletion is behind `ClipFileRemoving` until #22.
+- `#Predicate` comparing a captured enum (e.g. `status == .active`) throws `unsupportedPredicate` on iOS 26.5; filter enum fields in memory. Run SwiftData query changes on the iOS 26.5 simulator too.

@@ -119,7 +119,8 @@ struct ModelTests {
         #expect(fetched.blockResults.first?.shots.first?.tags == ["gate drill", "3ft"])
     }
 
-    @Test func activeSessionsAreFetchableByStatus() throws {
+    // Enum-captured #Predicate throws unsupportedPredicate on iOS 26.5, so active sessions are filtered in memory.
+    @Test func activeSessionIsFoundByStatus() throws {
         let activeSession = PracticeSession(plan: nil, mode: .rangeCounter, cameraAngle: .faceOn)
         let done = PracticeSession(plan: nil, mode: .rangeCounter, cameraAngle: .faceOn)
         done.status = .finished
@@ -127,9 +128,7 @@ struct ModelTests {
         context.insert(done)
         try context.save()
 
-        let active = SessionStatus.active
-        let descriptor = FetchDescriptor<PracticeSession>(predicate: #Predicate { $0.status == active })
-        #expect(try context.fetch(descriptor).map(\.id) == [activeSession.id])
+        #expect(try SessionController.activeSession(in: context)?.id == activeSession.id)
     }
 
     @Test func sessionCompletionUsesSnapshots() throws {
