@@ -18,7 +18,7 @@ The file has a single page for this project, and everything on it is current. Fr
 | Plan editor | #7 | [02 Plan editor](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=2-2), [06 Block editor sheet](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=4-35), [13 Discard alert](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=13-56) |
 | Session (live) | #9 | [03 Range + clips](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=3-2), [05 Putting](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=4-2), [14 Next block early](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=13-150) |
 | Session summary | #11 | [12 Session summary](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=12-169) |
-| Session log | #12 | not designed; follow the Plans list and summary styles |
+| Session log | #12 | not designed; built from 01 Plans (cards) and 12 Session summary (detail), see Q33 |
 | Settings | #6 | [10 Settings](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=12-2) |
 | Ball lock box + tap override | #15 | no frame; only the preview mock inside 03/05 (node 4:20) |
 | Video library | #24 | [04 Library](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=3-55) |
@@ -27,3 +27,4 @@ The file has a single page for this project, and everything on it is current. Fr
 - Session screen (#9): tokens in `Reps/UI/Session/SessionTheme.swift`; dim is an in-app black overlay (0.8) after 30 s, not system brightness (Q29). Camera area is a placeholder until #13.
 - Session summary (#11): shown in place of the session screen on End, not as a sheet. Figma 12's "112%" headline predates Q22; the headline is capped per block (that frame gives 100%). Tokens in `Reps/UI/Session/SummaryTheme.swift` and `Theme.accentDeep`.
 - Settings (#6): tokens in `Reps/UI/Settings/SettingsTheme.swift`; rows in `SettingsRows.swift`; the bag grid `BagEditorView` is shared with onboarding (#5).
+- Session log (#12): "Log" at the top left of Plans pushes the log; month sections of Plans-style cards; the detail reuses the summary's headline card, block rows (no bars yet) and stat tiles. Tokens in `Reps/UI/Log/LogTheme.swift`.

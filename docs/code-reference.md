@@ -158,6 +158,19 @@ Plan writes for the list and editor; MainActor; every write saves.
 - `delete(_:in:) throws`: sessions keep `planName` (nullify), blocks cascade
 - `lastDone(_:) -> Date?`: newest `endedAt ?? startedAt` of finished sessions, filtered in Swift (ADR 0013)
 
+## Reps/Log/SessionLogDisplay.swift
+Grouping, sorting and copy for the session log (F8); values in, strings out.
+- `LogBlock` / `LogEntry`: plain copies of a BlockResult / finished PracticeSession (built in `SessionLogView.swift`)
+- `SessionLogDisplay.sections(_:calendar:locale:) -> [LogSection]`: month sections ("September 2026"), newest month and session first, ties by id
+- `row(_:calendar:locale:) -> LogRow`: title, "Wed, Sep 16 · 9:14 AM · 48 min", "62 shots · 3 blocks · 60 clips" (free: clubs), session % (nil when free), `isComplete`
+- `detail(_:calendar:locale:) -> LogDetail`: date line, mode line, headline % or count, caption, block rows, stats (duration, clips saved, manual fixes)
+- `blockRow(_:mode:isFree:) -> LogBlockRow`: title (putting note, free tags), "45 / 30", block %, over-target flag
+- `percent(_:isComplete:)`: rounded, capped at 99 until complete; `duration(from:to:)`: "48 min", "1 h 12 min", nil without an end
+- `shownBlocks(_:)`: by order; free sessions drop unused blocks
+
+## Reps/Log/SessionLog.swift
+- `SessionLog.delete(_:in:clipFiles:) throws`: deletes a finished session (cascade to results and shots), saves, then `removeClips(sessionID:)`; throws `SessionLogError.notFinished` for an active one
+
 ## Reps/Bag/BagCatalog.swift
 Standard clubs for the bag grid (Figma 08) and the default bag (F19); nonisolated.
 - `Group(title:clubs:)`; `groups`: Woods, Hybrids, Irons, Wedges, Putter; `allClubs`: flattened; `defaultBag`: the common 14 for onboarding (#5) to seed
@@ -209,7 +222,7 @@ Figma 10 Settings (F25). Pushed from the Plans toolbar.
 
 ## Reps/UI/Plans/PlansView.swift
 Figma 01 Plans.
-- `PlansView(onStartPlan:onStartFreeSession:)`: `@Query` plans by `createdAt`; free-session card, plan cards (tap → editor, Start → closure), swipe Duplicate / Delete (delete asks first), "New plan"; editor in a full-screen cover; Settings pushes `SettingsView`
+- `PlansView(onStartPlan:onStartFreeSession:)`: `@Query` plans by `createdAt`; free-session card, plan cards (tap → editor, Start → closure), swipe Duplicate / Delete (delete asks first), "New plan"; editor in a full-screen cover; Log (top left) pushes `SessionLogView`; Settings pushes `SettingsView`
 - `PlanEditorTarget`: `.new` / `.edit(plan)` for the cover
 
 ## Reps/UI/Plans/PlanCard.swift
@@ -237,6 +250,19 @@ Settings → My bag.
 
 ## Reps/UI/Library/LibraryPlaceholderView.swift
 - `LibraryPlaceholderView`: `ContentUnavailableView` until #24
+
+## Reps/UI/Log/SessionLogView.swift
+No Figma frame (Q33); cards follow 01 Plans.
+- `SessionLogView`: `@Query` sessions by `startedAt` desc, finished only (filtered in memory, ADR 0013); month sections of cards → detail push; swipe Delete asks first → `SessionLog.delete` (`NoClipFiles` until #22); empty state
+- `LogEntry.init(_:)`, `LogBlock.init(_:)`: model → value copies (clip count = shots with a `clipFileName`)
+- `PreviewData.logContainer()` (DEBUG): preview store with one finished session per sample plan
+
+## Reps/UI/Log/SessionLogDetailView.swift
+Styled after Figma 12.
+- `SessionLogDetailView(session:)`: title + date subtitle, headline card (% or count, caption, mode line), block rows, stat tiles; clips are `TODO(#24)`
+
+## Reps/UI/Log/LogTheme.swift
+- `Theme.Typography.log*`, `Theme.Radius.logStat`: log sizes from Figma 12
 
 ## Reps/UI/PreviewData.swift
 - `PreviewData.container()` (DEBUG): in-memory store with the Figma sample bag and plans, for `#Preview`s only
@@ -324,6 +350,12 @@ In-memory store: create, round trip, edit in place with renumbering, removed blo
 
 ## RepsTests/SessionDisplayTests.swift
 Session copy, strip chip states and selectability, Next block prompt, elapsed clock, tag choices, resume message.
+
+## RepsTests/SessionLogDisplayTests.swift
+Log sections and order, row and detail copy (planned, putting, free), percent cap, durations (en_US, UTC).
+
+## RepsTests/SessionLogTests.swift
+In-memory store: delete cascades and removes clips; active sessions are refused.
 
 ## RepsTests/SummaryDisplayTests.swift
 Summary headline (Q22-capped), captions, rows and bars, percent rounding, putting and free sessions, stats, duration, tempo.
