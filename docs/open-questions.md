@@ -6,6 +6,8 @@ Answer inline, then move the decision to an ADR if it's architectural. Settled q
 
 | # | Question | Blocks | Notes / leaning |
 |---|---|---|---|
+| Q18 | Where does DetectorEval get the ball region (the user's tap, §5.2) for each footage clip? | #14, #16, #19 | Leaning: a small per-video file in hitreg-ml (e.g. `data/putting/roi/<video>.json`, normalised rect at the first frame) written by a labelling tool; the `makeDetector(video)` factory reads it. Alternative: auto-locate the ball in the first second. |
+| Q19 | The range test split has 23 swings, 16 practice, 7 motion. Enough to gate ≥95 % recall and ≤1 false per 50? | #21 | No: one miss is −4 %. Leaning: record more range footage for the test split, or gate on test + val once the classifier is frozen. |
 
 ## Resolved
 

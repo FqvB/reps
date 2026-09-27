@@ -66,12 +66,17 @@ xcodebuild build -project Reps.xcodeproj -scheme Reps -destination "$DEST" -quie
 xcodebuild test -project Reps.xcodeproj -scheme Reps -testPlan Unit -destination "$DEST" -only-testing:RepsTests/RepsStoreTests
 # DetectorEval (footage from ../hitreg-ml; override with TEST_RUNNER_REPS_ML_DIR=/path, skips if not found)
 xcodebuild test -project Reps.xcodeproj -scheme Reps -testPlan DetectorEval -destination "$DEST"
+# DetectorEval harness logic only (no footage, < 1 s)
+xcodebuild test -project Reps.xcodeproj -scheme Reps -testPlan DetectorEval -destination "$DEST" -only-testing:DetectorEvalTests/CSVTests -only-testing:DetectorEvalTests/EventMatcherTests -only-testing:DetectorEvalTests/EvalMetricsTests
+# one detector's eval suite, e.g. the oracle
+xcodebuild test -project Reps.xcodeproj -scheme Reps -testPlan DetectorEval -destination "$DEST" -only-testing:DetectorEvalTests/OracleEvalTests
 # format + lint
 xcrun swift-format format --in-place --recursive --parallel Reps ShotDetector RepsTests DetectorEvalTests
 xcrun swift-format lint --strict --recursive --parallel Reps ShotDetector RepsTests DetectorEvalTests
 ```
 
 - Env vars reach simulator tests only with the `TEST_RUNNER_` prefix (it's stripped), e.g. `TEST_RUNNER_REPS_ML_DIR`.
+- Eval reports land in `build/eval/<name>.txt` and `.json` (latest run, gitignored) and are attached to the test in the .xcresult. A new detector gets its own `<Name>EvalTests` suite that calls `EvalRunner().run(…)` and `EvalOutput.publish(_:)`.
 - Source files go in the synced folders (`Reps/`, `ShotDetector/`, `RepsTests/`, `DetectorEvalTests/`); never edit `project.pbxproj` to add files. Signing: put `DEVELOPMENT_TEAM = …` in `Config/Signing.local.xcconfig` (gitignored).
 - Only write tests for behaviour that matters: logic, state machines, math, detectors. Skip tests for pure layout.
 
@@ -79,7 +84,7 @@ xcrun swift-format lint --strict --recursive --parallel Reps ShotDetector RepsTe
 
 - Keep comments short, one line and only where the *why* isn't obvious. No doc-comment essays, no file headers.
 - Real documentation lives in `docs/code-reference.md`: one entry per file, one line per public type/function. Update it in the same commit as the code.
-- `ShotDetector` and everything under it stays free of AVFoundation so it runs against video files in tests (spec §4).
+- `ShotDetector` and everything under it stays free of AVFoundation so it runs against video files in tests (spec §4). Detectors take `VideoFrame`s through `ShotDetecting` (ADR 0010). Check: `grep -rnE 'import (AVFoundation|AVKit|UIKit|SwiftUI|CoreMedia)' ShotDetector` prints nothing.
 
 ## Commits and PRs
 
