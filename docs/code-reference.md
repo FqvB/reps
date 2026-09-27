@@ -109,6 +109,28 @@ What the session engine tells the voice layer (#10); plain values, nonisolated.
 - `ClipFileRemoving`: `removeClip(fileName:sessionID:)`, `removeClips(sessionID:)` for `Documents/clips/<sessionId>/`; #22 supplies the real one
 - `NoClipFiles`: no-op default
 
+## Reps/Permissions/CapturePermissions.swift
+The app's view of camera and microphone authorization; the only way the app asks (ADR 0014).
+- `CaptureMedium`: camera, microphone
+- `PermissionState`: notDetermined, granted, denied, restricted
+- `CapturePermissions`: `state(of:)`, `request(_:) async -> PermissionState` (prompts only while notDetermined)
+
+## Reps/Permissions/DevicePermissions.swift
+- `PermissionState.init(_ status: AVAuthorizationStatus)`: authorized → granted; `@unknown default` → denied (fail closed)
+- `CaptureMedium.mediaType`: `.video` / `.audio`
+- `DevicePermissions`: `AVCaptureDevice.authorizationStatus(for:)` / `requestAccess(for:)`; re-reads the status after the prompt instead of trusting the Bool. Needs the `INFOPLIST_KEY_NS{Camera,Microphone}UsageDescription` build settings.
+
+## Reps/Onboarding/OnboardingModel.swift
+Onboarding state (F20); MainActor, `@Observable`, no SwiftUI. Tests drive it with a fake `CapturePermissions`.
+- `OnboardingPage`: welcome, bag, camera; `PermissionRowAction`: request, openSettings, none
+- `OnboardingModel(permissions:settings:)`: `page`, `camera`, `microphone`, `isRequesting`, `isFinished`; `isLastPage`, `asksMicrophoneOnFinish` (mic undetermined, camera granted, Record audio on), `willPrompt`
+- `advance()` (forward only, stops at camera), `refresh()` (re-reads both statuses; called on scenePhase active), `rowAction(for:)` (notDetermined → request, denied → openSettings, else none), `request(_:) async` (only while notDetermined and not already requesting), `allowAndFinish() async` (camera, then mic if `asksMicrophoneOnFinish`, then `finish()` regardless), `finish()` (sets `AppSettings.hasCompletedOnboarding`)
+
+## Reps/Onboarding/OnboardingCopy.swift
+Copy for Figma 07–09; pure, unit-tested.
+- `OnboardingFeature(title:detail:symbol:)`; `OnboardingCopy.welcomeTitle/welcomeIntro/features/getStarted/bagTitle/bagIntro/cameraTitle/cameraIntro/illustrationCaption/angleLabel/cameraRow/microphoneRow`
+- `continueTitle(clubCount:)`, `finishTitle(willPrompt:)`, `status(_:)` (pill text), `cameraNote(_:)` (denied/restricted explanation, else nil)
+
 ## Reps/Session/SessionController.swift
 The session engine (spec §4, F2, F14, F16, F18, F21, F22, §6; ADR 0013). MainActor, `@Observable`, saves after every change, then emits events.
 - `SessionController(context:clipFiles:now:saveHook:)`: clip remover, clock and the save call are injectable (`saveHook` defaults to `context.save()`; tests use it to make a save fail)
