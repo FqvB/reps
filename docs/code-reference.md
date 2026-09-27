@@ -158,6 +158,24 @@ Plan writes for the list and editor; MainActor; every write saves.
 - `delete(_:in:) throws`: sessions keep `planName` (nullify), blocks cascade
 - `lastDone(_:) -> Date?`: newest `endedAt ?? startedAt` of finished sessions, filtered in Swift (ADR 0013)
 
+## Reps/Bag/BagCatalog.swift
+Standard clubs for the bag grid (Figma 08) and the default bag (F19); nonisolated.
+- `Group(title:clubs:)`; `groups`: Woods, Hybrids, Irons, Wedges, Putter; `allClubs`: flattened; `defaultBag`: the common 14 for onboarding (#5) to seed
+- `trimmed(_:)`, `key(_:)`: trimmed, lowercased match key
+- `catalogIndex(of:)`, `isStandard(_:)`: catalog lookup by key
+- `insertionIndex(for:in:)`: bag position for a new/restored club — before the first later standard club, custom ones last
+
+## Reps/Bag/BagLibrary.swift
+Bag writes for Settings and onboarding (F19); every write saves.
+- `BagError`: `.emptyName`, `.duplicateName`
+- `all(in:) throws -> [BagClub]`: bag order (`sortOrder`, then `name`)
+- `club(named:in:)`: case-insensitive, trimmed lookup in an already-fetched list
+- `setInBag(_:_:in:) throws`: a chip tap; off keeps the row (spec §5.1); on for a missing name inserts one at its catalog position
+- `addCustom(_:in:) throws -> BagClub`: "Add a custom club"; restores a hidden row, throws `.duplicateName` if already in bag
+- `rename(_:to:in:) throws`: only `BagClub.name`; plan blocks and shots keep the old name (snapshots, #4); throws `.duplicateName` against other rows (case-insensitive)
+- `delete(_:in:) throws`: removes the row; plans keep referencing the old name
+- `move(fromOffsets:toOffset:in:) throws`: reorders the in-bag clubs (offsets index bag order), hidden rows renumbered after them; SwiftUI `onMove` semantics, copied from `PlanDraft.moveBlocks`
+
 ## Reps/UI/Theme/Theme.swift
 Literal Figma values (docs/design.md): colours (`ink`, `secondaryText`, `accent`, `accentDeep`, `card`, `fill`, `hairline`, `sheet`, `danger`…), `Typography` (text styles where Figma matches their default size), `Spacing`, `Radius`.
 
