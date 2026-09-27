@@ -70,5 +70,6 @@ Small fixes and docs changes don't need the plan step. Use judgement, and keep t
 - Title: short, lowercase, imperative-ish, e.g. `implemented ball presence detector`.
 - Body: one line at most, e.g. `added NCC patch matcher and state machine`. Then issue refs (`Closes #14`, `Refs #3`).
 - No long AI-written descriptions, bullet lists, or summaries in commits.
+- No attribution: no `Co-Authored-By`, no `Claude-Session`, no "Generated with Claude Code" in commits or PRs.
 - PR: title same style, body is 1–3 lines plus `Closes #N`.
 - Update `docs/roadmap.md` status when an issue closes. Add new questions to `docs/open-questions.md` and decisions to `docs/adr/`.
