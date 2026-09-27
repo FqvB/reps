@@ -8,7 +8,7 @@ When building a screen, use the `figma:figma-design-to-code` / `figma:figma-swif
 
 ## Screen → frame map
 
-Fill this in once the Figma MCP is authenticated (open question Q13).
+The file has a single page for this project, and everything on it is current. Fill in frame links once the Figma MCP is authenticated.
 
 | Screen | Issue | Figma frame |
 |---|---|---|

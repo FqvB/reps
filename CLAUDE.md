@@ -8,6 +8,14 @@ iOS golf practice rep counter. Phone on a tripod counts shots and putts through 
 - Open questions: `docs/open-questions.md` · decisions: `docs/adr/`
 - Code reference (file + function docs): `docs/code-reference.md`
 
+## Platform
+
+- iOS 26 minimum, iPhone only. Bundle ID `com.fqvb.reps`.
+- Signing: free provisioning for now (builds expire after 7 days). The paid Apple Developer Program is pending.
+- Formatter: swift-format.
+- ML and footage live in the sibling repo `../hitreg-ml` (Python 3.14 + uv, PyTorch, coremltools). It holds the videos, label CSVs, the splits, and the trained Create ML swing classifier. Tests find it via `REPS_ML_DIR`. See ADR 0007.
+- Voice is English only.
+
 ## Feature workflow
 
 Every roadmap issue goes through the same pipeline. Use the agents in `.claude/agents/`; model and effort are pinned there.

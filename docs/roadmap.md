@@ -13,7 +13,7 @@ Goal: a project that builds, footage with ground truth, and a harness that score
 | # | Feature | Spec | Plan | Review | Status |
 |---|---|---|---|---|---|
 | [#1](https://github.com/FqvB/reps/issues/1) | Xcode project scaffold | §4 | opus | – | ☐ |
-| [#2](https://github.com/FqvB/reps/issues/2) | Record test footage + ground truth (manual) | §7 | – | – | ☐ |
+| [#2](https://github.com/FqvB/reps/issues/2) | Fill footage gaps: putting + re-tee/pickup (manual, range footage done in hitreg-ml) | §7 | – | – | ☐ |
 | [#3](https://github.com/FqvB/reps/issues/3) | Detector evaluation harness | §4, §7 | opus | opus | ☐ |
 
 ## Phase 1 — Manual counter (M1)
@@ -52,7 +52,7 @@ Goal: counting full swings hands-free at the accuracy the spec requires.
 | # | Feature | Spec | Plan | Review | Status |
 |---|---|---|---|---|---|
 | [#17](https://github.com/FqvB/reps/issues/17) | Pose extraction + heuristic swing detector | §5.3 | opus | opus | ☐ |
-| [#18](https://github.com/FqvB/reps/issues/18) | Create ML swing classifier | §3.2 | opus | opus | ☐ |
+| [#18](https://github.com/FqvB/reps/issues/18) | Integrate existing Create ML swing classifier | §3.2 | opus | opus | ☐ |
 | [#19](https://github.com/FqvB/reps/issues/19) | Ball-gated fusion + Range Counter mode | F3, §5.4 | opus | opus | ☐ |
 | [#20](https://github.com/FqvB/reps/issues/20) | Camera angle presets + setup overlay | F9 | opus | – | ☐ |
 | [#21](https://github.com/FqvB/reps/issues/21) | Accuracy gate (≥95% recall, ≤1 false/50, <1.5 s) | §2 NFR | opus | – | ☐ |
@@ -83,7 +83,7 @@ Only if it beats Create ML on the event metric.
 
 | # | Feature | Spec | Plan | Review | Status |
 |---|---|---|---|---|---|
-| [#30](https://github.com/FqvB/reps/issues/30) | Own swing model (PyTorch → Core ML) | §3.2 | opus | opus | ☐ |
+| [#30](https://github.com/FqvB/reps/issues/30) | Own swing model (PyTorch → Core ML, in hitreg-ml) | §3.2 | opus | opus | ☐ |
 
 ## Later (no issues yet)
 
