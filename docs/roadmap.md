@@ -8,12 +8,11 @@ Status: ☐ todo · ◐ in progress · ☑ done
 
 ## Phase 0 — Foundation (M0)
 
-Goal: a project that builds, footage with ground truth, and a harness that scores detectors against it. Detection code isn't written before this phase is done.
+Goal: a project that builds, and a harness that scores detectors against the hitreg-ml footage. Detection code isn't written before this phase is done.
 
 | # | Feature | Spec | Plan | Review | Status |
 |---|---|---|---|---|---|
 | [#1](https://github.com/FqvB/reps/issues/1) | Xcode project scaffold | §4 | opus | – | ☐ |
-| [#2](https://github.com/FqvB/reps/issues/2) | Record putting eval footage (manual, range footage done in hitreg-ml) | §7 | – | – | ☐ |
 | [#3](https://github.com/FqvB/reps/issues/3) | Detector evaluation harness | §4, §7 | opus | opus | ☐ |
 
 ## Phase 1 — Manual counter (M1)
@@ -40,6 +39,7 @@ Goal: the simplest vision path (ball presence only) proves the camera pipeline e
 
 | # | Feature | Spec | Plan | Review | Status |
 |---|---|---|---|---|---|
+| [#2](https://github.com/FqvB/reps/issues/2) | Record putting eval clip (~20 putts, manual) | §7, ADR 0008 | – | – | ☐ |
 | [#13](https://github.com/FqvB/reps/issues/13) | Camera pipeline | §5.6, §6 | opus | opus | ☐ |
 | [#14](https://github.com/FqvB/reps/issues/14) | Ball presence detector | §5.2 | opus | opus | ☐ |
 | [#15](https://github.com/FqvB/reps/issues/15) | Ball tap setup + box state | §5.2, §6 | opus | – | ☐ |
