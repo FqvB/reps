@@ -15,6 +15,8 @@ Answer inline, then move the decision to an ADR if it's architectural. Settled q
 | Q28 | Free session start: which mode (and club) does "Free session" start in? #9 starts Range with the first bag club. | – (#9 ships Range) | Options: a small mode sheet before start, or the last-used mode. Leaning: last-used mode, stored in Settings (#6). |
 | Q29 | Dim (§5.3c): in-app black overlay (shipped in #9) or lower system brightness (§5.6 "brightness low")? | #28 | System brightness persists after the app closes until the phone locks (UIKit docs), so it must be restored on background/kill. Leaning: keep the overlay; revisit in #28 if battery tests say otherwise. |
 | Q30 | "Manual fixes" on the summary is Σ \|repsManualAdjust\| per block (net, so +1 then −1 counts 0). Count every +1/−1 tap instead? | – (#11 ships net) | Counting taps needs a new stored field (schema V2). Leaning: keep net; it's what §5.1 uses for detector accuracy. |
+| Q31 | Figma 10 has a global "Save clips to Photos" toggle, but spec §5.8 says Photos saving is per clip and never automatic (40 clips would flood the roll). Which is it? | #26 | #6 stores the preference only (default off). Leaning: the toggle means "auto-save every clip", off by default, and per-clip save stays in the clip detail. |
+| Q32 | Clip quality options: #6 offers 1080p60 (default), 1080p30, 720p30. Does capture (1080p60 for detection, §5.6) constrain these to export presets only? | #22 | #22 maps them to writer settings or trims the list. |
 
 ## Resolved
 

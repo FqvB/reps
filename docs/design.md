@@ -26,3 +26,4 @@ The file has a single page for this project, and everything on it is current. Fr
 
 - Session screen (#9): tokens in `Reps/UI/Session/SessionTheme.swift`; dim is an in-app black overlay (0.8) after 30 s, not system brightness (Q29). Camera area is a placeholder until #13.
 - Session summary (#11): shown in place of the session screen on End, not as a sheet. Figma 12's "112%" headline predates Q22; the headline is capped per block (that frame gives 100%). Tokens in `Reps/UI/Session/SummaryTheme.swift` and `Theme.accentDeep`.
+- Settings (#6): tokens in `Reps/UI/Settings/SettingsTheme.swift`; rows in `SettingsRows.swift`; the bag grid `BagEditorView` is shared with onboarding (#5).
