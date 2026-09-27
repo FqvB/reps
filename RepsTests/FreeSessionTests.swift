@@ -112,6 +112,14 @@ struct FreeSessionTests {
         #expect(controller.activeBlock?.shots.count == 1)
     }
 
+    @Test func finishWithOnlyUnusedBlocksDiscardsTheSession() throws {
+        // Nothing was ever hit, so finish would otherwise save an empty finished session.
+        controller.finish()
+        #expect(controller.session == nil)
+        #expect(try context.fetchCount(FetchDescriptor<PracticeSession>()) == 0)
+        #expect(try context.fetchCount(FetchDescriptor<BlockResult>()) == 0)
+    }
+
     @Test func finishDropsUnusedBlocks() throws {
         hit(1)
         controller.setClub("8 iron")

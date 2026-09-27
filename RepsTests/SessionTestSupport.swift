@@ -31,3 +31,6 @@ final class ClipSpy: ClipFileRemoving {
 final class EventLog {
     var events: [SessionEvent] = []
 }
+
+// Injected via SessionController's saveHook to make a save fail on demand.
+struct TestSaveError: Error {}

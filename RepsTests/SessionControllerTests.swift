@@ -86,6 +86,30 @@ struct SessionControllerTests {
         #expect(try context.fetchCount(FetchDescriptor<PracticeSession>()) == 1)
     }
 
+    @Test func startRefusesWhenAnotherSessionIsActiveInStore() throws {
+        try start()
+        // A fresh controller instance has no in-memory session, but one is already active in the store.
+        let other = SessionController(context: context, clipFiles: clips, now: { clock.next() })
+        #expect(throws: SessionError.sessionInProgress) {
+            try other.start(plan: makePlan(), cameraAngle: .faceOn)
+        }
+        #expect(throws: SessionError.sessionInProgress) {
+            try other.startFree(mode: .rangeCounter, cameraAngle: .faceOn, clubName: "7 iron")
+        }
+        #expect(try context.fetchCount(FetchDescriptor<PracticeSession>()) == 1)
+    }
+
+    @Test func startReownsAPlanFetchedFromAnotherContext() throws {
+        let plan = makePlan()
+        try context.save()
+        let otherContext = ModelContext(container)
+        let fetchedPlan = try #require(try otherContext.fetch(FetchDescriptor<PracticePlan>()).first)
+        try controller.start(plan: fetchedPlan, cameraAngle: .faceOn)
+        #expect(controller.session != nil)
+        controller.recordShot(source: .camera)
+        #expect(try context.fetchCount(FetchDescriptor<ShotRecord>()) == 1)
+    }
+
     @Test func cameraShotCountsAsDetection() throws {
         try start()
         let shot = try #require(controller.recordShot(source: .camera))
@@ -244,6 +268,21 @@ struct SessionControllerTests {
         #expect(done == [2, 1, 1])
     }
 
+    @Test func freeOrderAdvanceSkipsZeroTargetBlocks() throws {
+        try start(targets: [1, 0, 1])
+        hit(1)
+        #expect(activeClub == "8 iron")
+        controller.advance()
+        // The middle block has no target, so it can never complete; free order skips straight past it.
+        #expect(activeClub == "PW")
+        hit(1)
+        #expect(controller.isPlanComplete)
+        // Both targeted blocks are complete; without the fix this would loop back onto the zero-target block.
+        controller.advance()
+        #expect(controller.activeBlock == nil)
+        #expect(log.events.last == .planEnded)
+    }
+
     @Test func planEditsDoNotChangeRunningSession() throws {
         let plan = makePlan(strict: true, targets: [2, 2])
         try controller.start(plan: plan, cameraAngle: .faceOn)
@@ -299,6 +338,42 @@ struct SessionControllerTests {
         #expect(controller.activeBlock?.tally.done == 0)
         #expect(controller.activeBlock?.repsManualAdjust == -1)
         #expect(log.events == [.countChanged(done: 1, target: 3), .countChanged(done: 0, target: 3)])
+    }
+
+    @Test func minusOneSkipsClipRemovalWhenSaveFails() throws {
+        var shouldFail = false
+        let controller = SessionController(
+            context: context, clipFiles: clips, now: { clock.next() },
+            saveHook: {
+                if shouldFail { throw TestSaveError() }
+                try context.save()
+            })
+        try controller.start(plan: makePlan(), cameraAngle: .faceOn)
+        let shot = try #require(controller.recordShot(source: .camera))
+        shot.clipFileName = "\(shot.id.uuidString).mov"
+        try context.save()
+
+        shouldFail = true
+        controller.minusOne()
+        #expect(clips.removedClips.isEmpty)
+        #expect(controller.lastSaveError != nil)
+    }
+
+    @Test func discardSkipsClipRemovalWhenSaveFails() throws {
+        var shouldFail = false
+        let controller = SessionController(
+            context: context, clipFiles: clips, now: { clock.next() },
+            saveHook: {
+                if shouldFail { throw TestSaveError() }
+                try context.save()
+            })
+        try controller.start(plan: makePlan(), cameraAngle: .faceOn)
+        controller.recordShot(source: .camera)
+
+        shouldFail = true
+        controller.discard()
+        #expect(clips.removedSessions.isEmpty)
+        #expect(controller.lastSaveError != nil)
     }
 
     @Test func minusOneRemovesClipFile() throws {

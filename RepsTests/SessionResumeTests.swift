@@ -116,6 +116,91 @@ final class SessionResumeTests {
         #expect(throws: SessionError.notActive) { try controller.resume(finished) }
     }
 
+    @Test func resumeReownsASessionFetchedFromADifferentContext() throws {
+        let clock = TestClock()
+        let container = try RepsStore.makeContainer(inMemory: true)
+        do {
+            let controller = SessionController(context: ModelContext(container), now: { clock.next() })
+            try controller.startFree(mode: .rangeCounter, cameraAngle: .faceOn, clubName: "7 iron")
+        }
+        let fetchContext = ModelContext(container)
+        let saved = try #require(try SessionController.activeSession(in: fetchContext))
+
+        let resumeContext = ModelContext(container)
+        let controller = SessionController(context: resumeContext, now: { clock.next() })
+        try controller.resume(saved)
+        controller.recordShot(source: .camera)
+
+        let verifyContext = ModelContext(container)
+        let reloaded = try #require(try SessionController.activeSession(in: verifyContext))
+        #expect(reloaded.blockResults.first?.tally.done == 1)
+    }
+
+    @Test func resumeWithNoActiveBlockTakesTagsFromMostRecentBlock() throws {
+        let container = try RepsStore.makeContainer(inMemory: true)
+        let context = container.mainContext
+        let plan = PracticePlan(name: "Test", mode: .putting, isStrictCount: true)
+        context.insert(plan)
+        plan.blocks = [PlanBlock(clubName: "Putter", targetReps: 1, order: 0)]
+        let first = SessionController(context: context)
+        try first.start(plan: plan, cameraAngle: .none)
+        first.setTags(["gate"])
+        first.recordShot(source: .camera)
+
+        let saved = try #require(try SessionController.activeSession(in: context))
+        let second = SessionController(context: context)
+        try second.resume(saved)
+        #expect(second.activeBlock == nil)
+        #expect(second.activeTags == ["gate"])
+    }
+
+    @Test func resumeOntoACompletedStrictBlockAdvances() throws {
+        let container = try RepsStore.makeContainer(inMemory: true)
+        let context = container.mainContext
+        let plan = PracticePlan(name: "Test", mode: .putting, isOrderMandatory: true, isStrictCount: true)
+        context.insert(plan)
+        plan.blocks = [
+            PlanBlock(clubName: "Putter", targetReps: 1, order: 0),
+            PlanBlock(clubName: "Putter", targetReps: 1, order: 1),
+        ]
+        let first = SessionController(context: context)
+        try first.start(plan: plan, cameraAngle: .none)
+        // Simulate a session persisted with activeBlockOrder still on a block that has since completed;
+        // the public API always advances in the same save, but resume must still handle this defensively.
+        first.blocks[0].repsCounted = 1
+        first.session?.activeBlockOrder = 0
+        try context.save()
+
+        let saved = try #require(try SessionController.activeSession(in: context))
+        let log = EventLog()
+        let second = SessionController(context: context)
+        second.addEventHandler { log.events.append($0) }
+        try second.resume(saved)
+        #expect(second.activeBlock?.order == 1)
+        #expect(log.events == [.blockChanged(clubName: "Putter", target: 1, done: 0)])
+    }
+
+    @Test func resumeFallsBackWhenActiveBlockOrderIsStale() throws {
+        let container = try RepsStore.makeContainer(inMemory: true)
+        let context = container.mainContext
+        let plan = PracticePlan(name: "Test", mode: .putting)
+        context.insert(plan)
+        plan.blocks = [
+            PlanBlock(clubName: "Putter", targetReps: 1, order: 0),
+            PlanBlock(clubName: "Putter", targetReps: 1, order: 1),
+        ]
+        let first = SessionController(context: context)
+        try first.start(plan: plan, cameraAngle: .none)
+        first.recordShot(source: .camera)  // minimums: completes block 0 but stays active on it
+        first.session?.activeBlockOrder = 99  // dangling reference
+        try context.save()
+
+        let saved = try #require(try SessionController.activeSession(in: context))
+        let second = SessionController(context: context)
+        try second.resume(saved)
+        #expect(second.activeBlock?.order == 1)
+    }
+
     @Test func resumeAfterStrictPlanEndedHasNoActiveBlock() throws {
         let container = try RepsStore.makeContainer(inMemory: true)
         let context = container.mainContext

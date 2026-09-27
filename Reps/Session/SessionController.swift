@@ -19,14 +19,20 @@ final class SessionController {
     @ObservationIgnored private let context: ModelContext
     @ObservationIgnored private let clipFiles: any ClipFileRemoving
     @ObservationIgnored private let now: () -> Date
+    @ObservationIgnored private let saveHook: () throws -> Void
     @ObservationIgnored private var handlers: [(SessionEvent) -> Void] = []
     // Set by a strict auto-advance so an immediate −1 undoes into the block that just ended.
     @ObservationIgnored private var autoAdvancedFrom: BlockResult?
 
-    init(context: ModelContext, clipFiles: any ClipFileRemoving = NoClipFiles(), now: @escaping () -> Date = { .now }) {
+    // saveHook defaults to context.save(); tests inject a failing one to check save-gated cleanup.
+    init(
+        context: ModelContext, clipFiles: any ClipFileRemoving = NoClipFiles(), now: @escaping () -> Date = { .now },
+        saveHook: (() throws -> Void)? = nil
+    ) {
         self.context = context
         self.clipFiles = clipFiles
         self.now = now
+        self.saveHook = saveHook ?? { try context.save() }
     }
 
     var blocks: [BlockResult] { session?.sortedBlockResults ?? [] }
@@ -41,11 +47,14 @@ final class SessionController {
     }
 
     func addEventHandler(_ handler: @escaping (SessionEvent) -> Void) {
+        // Handlers run synchronously inside emit(); they must not call back into the controller.
         handlers.append(handler)
     }
 
     func start(plan: PracticePlan, cameraAngle: CameraAngle) throws {
-        guard session == nil else { throw SessionError.sessionInProgress }
+        guard session == nil, try Self.activeSession(in: context) == nil else { throw SessionError.sessionInProgress }
+        // A plan fetched via another context must be re-owned before it can be attached to this session.
+        let plan = plan.modelContext === context ? plan : (context.model(for: plan.persistentModelID) as! PracticePlan)
         let planBlocks = plan.sortedBlocks
         guard !planBlocks.isEmpty else { throw SessionError.emptyPlan }
         let newSession = PracticeSession(plan: plan, mode: plan.mode, cameraAngle: cameraAngle, startedAt: now())
@@ -58,7 +67,7 @@ final class SessionController {
     }
 
     func startFree(mode: PracticeMode, cameraAngle: CameraAngle, clubName: String, tags: [String] = []) throws {
-        guard session == nil else { throw SessionError.sessionInProgress }
+        guard session == nil, try Self.activeSession(in: context) == nil else { throw SessionError.sessionInProgress }
         let newSession = PracticeSession(plan: nil, mode: mode, cameraAngle: cameraAngle, startedAt: now())
         context.insert(newSession)
         let block = BlockResult(clubName: clubName, tags: tags, order: 0)
@@ -69,22 +78,33 @@ final class SessionController {
     }
 
     // The session to offer in the "resume?" prompt at launch: the newest active one.
+    // Filtered in Swift, not #Predicate: comparing to a captured enum constant isn't supported on this SDK.
     static func activeSession(in context: ModelContext) throws -> PracticeSession? {
-        let active = SessionStatus.active
-        var descriptor = FetchDescriptor<PracticeSession>(
-            predicate: #Predicate { $0.status == active },
-            sortBy: [SortDescriptor(\.startedAt, order: .reverse)])
-        descriptor.fetchLimit = 1
-        return try context.fetch(descriptor).first
+        let descriptor = FetchDescriptor<PracticeSession>(sortBy: [SortDescriptor(\.startedAt, order: .reverse)])
+        return try context.fetch(descriptor).first { $0.status == .active }
     }
 
     func resume(_ saved: PracticeSession) throws {
         guard session == nil else { throw SessionError.sessionInProgress }
         guard saved.status == .active else { throw SessionError.notActive }
-        session = saved
-        let block = saved.activeBlockOrder.flatMap { order in saved.blockResults.first { $0.order == order } }
-        activeTags = block?.tags ?? []
-        activate(block)
+        // A session fetched via a different context must be re-owned so this controller's saves reach the store.
+        let resumed =
+            saved.modelContext === context ? saved : (context.model(for: saved.persistentModelID) as! PracticeSession)
+        session = resumed
+        let sorted = resumed.sortedBlockResults
+        var block = resumed.activeBlockOrder.flatMap { order in sorted.first { $0.order == order } }
+        // A stale activeBlockOrder with no matching block falls back to the first incomplete one.
+        if block == nil, resumed.activeBlockOrder != nil {
+            block = sorted.first { !Completion.isComplete($0.tally) }
+        }
+        // A strict session killed right after completing its active block finishes the advance now.
+        if resumed.isStrictCount, let current = block, Completion.isComplete(current.tally) {
+            block = nextBlock(after: current)
+        }
+        activeTags = block?.tags ?? sorted.last?.tags ?? []
+        setActive(block)
+        save()
+        emitActivation(block)
     }
 
     @discardableResult
@@ -99,15 +119,24 @@ final class SessionController {
         case .camera: block.repsCounted += 1
         case .manual: block.repsManualAdjust += 1
         }
-        save()
         let done = block.tally.done
-        emit(.countChanged(done: done, target: block.targetReps))
-        guard let target = block.targetReps, target > 0, done == target else { return shot }
-        emit(.targetReached(clubName: block.clubName, target: target, isStrict: session.isStrictCount))
-        if session.isStrictCount {
-            let next = nextBlock(after: block)
+        let target = block.targetReps
+        let justCompleted = target.map { $0 > 0 && done == $0 } ?? false
+        let didAdvance = justCompleted && session.isStrictCount
+        var advancedTo: BlockResult?
+        if didAdvance {
+            advancedTo = nextBlock(after: block)
             autoAdvancedFrom = block
-            activate(next)
+            setActive(advancedTo)
+        }
+        // One save for the shot and, when it completes a strict block, the advance together.
+        save()
+        emit(.countChanged(done: done, target: block.targetReps))
+        if justCompleted, let target {
+            emit(.targetReached(clubName: block.clubName, target: target, isStrict: session.isStrictCount))
+            if didAdvance {
+                emitActivation(advancedTo)
+            }
         }
         return shot
     }
@@ -124,8 +153,7 @@ final class SessionController {
             context.delete(latest)
         }
         block.repsManualAdjust -= 1
-        save()
-        if let clipFileName {
+        if save(), let clipFileName {
             clipFiles.removeClip(fileName: clipFileName, sessionID: session.id)
         }
         emit(.countChanged(done: block.tally.done, target: block.targetReps))
@@ -187,6 +215,11 @@ final class SessionController {
                 session.blockResults.removeAll { $0 === block }
                 context.delete(block)
             }
+            // Nothing left to show: a free session with every block dropped is not worth keeping.
+            if session.blockResults.isEmpty {
+                discard()
+                return
+            }
         }
         session.status = .finished
         session.endedAt = now()
@@ -199,8 +232,9 @@ final class SessionController {
         guard let session else { return }
         let sessionID = session.id
         context.delete(session)
-        save()
-        clipFiles.removeClips(sessionID: sessionID)
+        if save() {
+            clipFiles.removeClips(sessionID: sessionID)
+        }
         reset()
     }
 
@@ -209,14 +243,26 @@ final class SessionController {
         let later = all.filter { $0.order > current.order }
         if isOrderMandatory { return later.first }
         let earlier = all.filter { $0.order < current.order }
-        return (later + earlier).first { !Completion.isComplete($0.tally) }
+        // A block with no positive target can never complete on its own; skip it so free order keeps moving.
+        return (later + earlier).first { block in
+            guard let target = block.targetReps, target > 0 else { return false }
+            return !Completion.isComplete(block.tally)
+        }
     }
 
     private func activate(_ block: BlockResult?) {
+        setActive(block)
+        save()
+        emitActivation(block)
+    }
+
+    private func setActive(_ block: BlockResult?) {
         activeBlock = block
         session?.activeBlockOrder = block?.order
         block?.tags = activeTags
-        save()
+    }
+
+    private func emitActivation(_ block: BlockResult?) {
         if let block {
             emit(.blockChanged(clubName: block.clubName, target: block.targetReps, done: block.tally.done))
         } else {
@@ -236,12 +282,15 @@ final class SessionController {
         block.shots.isEmpty && block.repsCounted == 0 && block.repsManualAdjust == 0
     }
 
-    private func save() {
+    @discardableResult
+    private func save() -> Bool {
         do {
-            try context.save()
+            try saveHook()
             lastSaveError = nil
+            return true
         } catch {
             lastSaveError = error
+            return false
         }
     }
 
