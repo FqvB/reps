@@ -15,8 +15,8 @@ App entry point; opens the SwiftData store and shows the root view.
 - `RepsApp`: `@main` app; builds the container with `RepsStore.makeContainer()` (fatal on failure until #29) and attaches it with `.modelContainer(_:)`
 
 ## Reps/App/RootView.swift
-Root TabView (Plans, Library) and the session host.
-- `RootView`: owns one `SessionController` (made on first use); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`, reading the default camera angle from `AppSettings().cameraAngle(for:)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); voice hook is `TODO(#10)`
+Root TabView (Plans, Library), the session host, and the onboarding gate.
+- `RootView`: owns one `SessionController` (made on first use); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`, reading the default camera angle from `AppSettings().cameraAngle(for:)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); voice hook is `TODO(#10)`; shows `OnboardingView(permissions: DevicePermissions())` instead of the tabs while `AppSettings.hasCompletedOnboarding` is false (the resume prompt waits for the tabs)
 
 ## Reps/Model/ModelEnums.swift
 Stored and exported enums; raw values are frozen (ADR 0012).
@@ -213,7 +213,7 @@ Bag writes for Settings and onboarding (F19); every write saves.
 - `seedDefaultBag(in:) throws -> Bool`: inserts `BagCatalog.defaultBag` in catalog order only when there are no BagClub rows at all; false otherwise (idempotent, #5)
 
 ## Reps/UI/Theme/Theme.swift
-Literal Figma values (docs/design.md): colours (`ink`, `secondaryText`, `accent`, `accentDeep`, `card`, `fill`, `hairline`, `sheet`, `danger`…), `Typography` (text styles where Figma matches their default size), `Spacing`, `Radius`.
+Literal Figma values (docs/design.md): colours (`ink`, `secondaryText`, `accent`, `accentDeep`, `card`, `fill`, `hairline`, `sheet`, `danger`, `illustration` (0x8A9A84), `ballBox` (0xE6D35A)…), `Typography` (text styles where Figma matches their default size), `Spacing`, `Radius`.
 
 ## Reps/UI/Components/*.swift
 Shared by every screen.
@@ -273,6 +273,17 @@ Settings → My bag.
 
 ## Reps/UI/Library/LibraryPlaceholderView.swift
 - `LibraryPlaceholderView`: `ContentUnavailableView` until #24
+
+## Reps/UI/Onboarding/OnboardingView.swift
+Figma 07–09 (F19, F20). Shown by `RootView` until onboarding completes.
+- `OnboardingView(permissions:)`: owns an `OnboardingModel`; pages switch with a push transition; footer = `PageDots` + `FooterCTA` (Get started / Continue with N clubs / Allow and finish|Finish); seeds the bag in `.task`; refreshes statuses on `scenePhase == .active`; Settings deep link via `openURL(UIApplication.openSettingsURLString)`
+- private `WelcomePage`, `BagPage` (hosts `BagEditorView`), `CameraPage` (illustration, `AngleSegments` bound to the default-angle key, two `PermissionRow`s, denied/restricted note), `PageTitle`, `AngleSegments`, `PermissionRow`, `CameraSetupIllustration` (Canvas drawing of Figma 09)
+
+## Reps/UI/Onboarding/PageDots.swift
+- `PageDots(count:current:)`: 18×6 accent capsule for the current page, 6 pt dots otherwise
+
+## Reps/UI/Onboarding/OnboardingTheme.swift
+Onboarding values from Figma 07–09: `Theme.Typography.appMark` (34 bold), `onboardingIntro`, `illustrationCaption`; `Theme.Spacing.welcomeTop/welcomeGutter/welcomeGap/onboardingGap`; `Theme.Radius.appMark/illustration/segment/segmentInner`.
 
 ## Reps/UI/Log/SessionLogView.swift
 No Figma frame (Q33); cards follow 01 Plans.
@@ -382,6 +393,19 @@ In-memory store: delete cascades and removes clips; active sessions are refused.
 
 ## RepsTests/SummaryDisplayTests.swift
 Summary headline (Q22-capped), captions, rows and bars, percent rounding, putting and free sessions, stats, duration, tempo.
+
+## RepsTests/CapturePermissionsTests.swift
+`AVAuthorizationStatus` → `PermissionState` mapping, media types.
+
+## RepsTests/OnboardingModelTests.swift
+- `FakePermissions`: scripted states and answers, records every request
+- Page order, initial states, camera-then-mic on finish, mic skipped when Record audio is off or the camera is denied, decided/restricted never asked, row actions, request gating, refresh, `willPrompt`.
+
+## RepsTests/OnboardingCopyTests.swift
+Continue/finish titles, status pills, camera note, features.
+
+## RepsTests/BagSeedingTests.swift
+Default bag seeding: empty store, second run, existing bag untouched.
 
 ## DetectorEvalTests/MLData.swift
 Locates the hitreg-ml checkout (ADR 0007).

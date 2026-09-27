@@ -7,10 +7,21 @@ struct RootView: View {
     @State private var sessions: SessionController?
     @State private var pendingResume: PracticeSession?
     @State private var startFailed = false
+    @AppStorage(AppSettings.Key.hasCompletedOnboarding) private var hasCompletedOnboarding =
+        AppSettings.Default.hasCompletedOnboarding
 
     var body: some View {
+        if hasCompletedOnboarding {
+            tabs
+        } else {
+            // F20: shown once. The resume prompt lives on the tabs, so it waits until onboarding is done.
+            OnboardingView(permissions: DevicePermissions())
+        }
+    }
+
+    private var tabs: some View {
         let isInSession = sessions?.session != nil
-        TabView {
+        return TabView {
             Tab("Plans", systemImage: "list.bullet.rectangle") {  // PLACEHOLDER: Plans tab icon
                 PlansView(onStartPlan: start(plan:), onStartFreeSession: startFree)
             }

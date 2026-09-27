@@ -15,6 +15,8 @@ enum Theme {
     static let dangerText = Color(hex: 0xB3413A)
     static let toastAction = Color(hex: 0x9FD3B7)
     static let accentDeep = Color(hex: 0x1E4A36)
+    static let illustration = Color(hex: 0x8A9A84)
+    static let ballBox = Color(hex: 0xE6D35A)
 
     enum Typography {
         static let largeTitle = Font.largeTitle.bold()
