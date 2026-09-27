@@ -453,6 +453,32 @@ struct SessionControllerTests {
         #expect(try SessionController.activeSession(in: ModelContext(container)) == nil)
     }
 
+    @Test func finishAnnouncesTheSaveLast() throws {
+        try start()
+        hit(1)
+        controller.finish()
+        #expect(log.events == [.countChanged(done: 1, target: 3), .sessionSaved])
+    }
+
+    @Test func failedFinishIsNotAnnounced() throws {
+        var shouldFail = false
+        let log = EventLog()
+        let controller = SessionController(
+            context: context, clipFiles: clips, now: { clock.next() },
+            saveHook: {
+                if shouldFail { throw TestSaveError() }
+                try context.save()
+            })
+        controller.addEventHandler { log.events.append($0) }
+        try controller.start(plan: makePlan(), cameraAngle: .faceOn)
+        controller.recordShot(source: .camera)
+
+        shouldFail = true
+        controller.finish()
+        #expect(!log.events.contains(.sessionSaved))
+        #expect(controller.lastSaveError != nil)
+    }
+
     @Test func discardDeletesSessionAndClips() throws {
         try start()
         hit(2)

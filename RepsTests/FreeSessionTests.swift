@@ -131,4 +131,15 @@ struct FreeSessionTests {
         #expect(saved.sortedBlockResults.map(\.clubName) == ["7 iron"])
         #expect(try fresh.fetchCount(FetchDescriptor<BlockResult>()) == 1)
     }
+
+    @Test func discardedFreeSessionIsNotAnnounced() throws {
+        controller.finish()
+        #expect(!log.events.contains(.sessionSaved))
+    }
+
+    @Test func finishedFreeSessionIsAnnounced() throws {
+        hit(1)
+        controller.finish()
+        #expect(log.events.last == .sessionSaved)
+    }
 }

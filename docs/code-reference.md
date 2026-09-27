@@ -105,6 +105,7 @@ What the session engine tells the voice layer (#10); plain values, nonisolated.
 - `targetReached(clubName:target:isStrict:)`: done just became equal to the target; strict blocks end here
 - `blockChanged(clubName:target:done:)`: a block became active (start, resume, next, strip jump, strict auto-advance, club/tag change, −1 reopening a block)
 - `planEnded`: no block left to run; shots are ignored until a block is selected or the session ends
+- `sessionSaved`: Done saved the session; not sent when `finish()` discards or the save fails
 
 ## Reps/Session/ClipFileRemoving.swift
 - `ClipFileRemoving`: `removeClip(fileName:sessionID:)`, `removeClips(sessionID:)` for `Documents/clips/<sessionId>/`; #22 supplies the real one
@@ -146,7 +147,7 @@ The session engine (spec §4, F2, F14, F16, F18, F21, F22, §6; ADR 0013). MainA
 - `advance()`: next block (mandatory: next in order; free: next incomplete and targeted, wrapping), or `planEnded`
 - `select(_:) -> Bool`: block strip jump; false in free sessions, with mandatory order, or onto a complete strict block
 - `setClub(_:)`, `setTags(_:)`: free sessions start a new block unless the current one is unused; planned sessions carry tags across blocks
-- `finish()`: `finished` + `endedAt`, drops unused free blocks, discards the session instead if that leaves none; `discard()`: deletes the session and, only if that save succeeds, its clips
+- `finish()`: `finished` + `endedAt`, drops unused free blocks, discards the session instead if that leaves none; emits `sessionSaved` only when the closing save succeeds; `discard()`: deletes the session and, only if that save succeeds, its clips
 
 ## Reps/Session/SessionDisplay.swift
 Copy and chip states for the session screen; pure values, unit-tested.
@@ -442,10 +443,10 @@ Clip usage summing; `ClipURLTests`: valid clip path resolution, unsafe names rej
 - `TestClock` (1 s per read), `ClipSpy` (records clip removals), `EventLog` (collects `SessionEvent`s), `TestSaveError` (thrown by an injected `saveHook` to test save-gated cleanup)
 
 ## RepsTests/SessionControllerTests.swift
-Planned sessions: start, counting, minimums vs strict, mandatory vs free order, skip, last block, zero-target blocks, plan edits, −1 (Q21), tags, finish, discard. Also: refusing a second active session (in-controller and store-wide), re-owning a plan fetched from another context, and clip removal skipped when a save fails.
+Planned sessions: start, counting, minimums vs strict, mandatory vs free order, skip, last block, zero-target blocks, plan edits, −1 (Q21), tags, finish, discard. Also: refusing a second active session (in-controller and store-wide), re-owning a plan fetched from another context, clip removal skipped when a save fails, and `sessionSaved` announced only on a successful finish.
 
 ## RepsTests/FreeSessionTests.swift
-Free sessions: untargeted blocks, club/tag changes start blocks (in place when unused), navigation off, finish drops unused blocks, finish discards a session left with none.
+Free sessions: untargeted blocks, club/tag changes start blocks (in place when unused), navigation off, finish drops unused blocks, finish discards a session left with none, `sessionSaved` announced only when finish actually saves.
 
 ## RepsTests/SessionResumeTests.swift
 On-disk kill and resume (autosave off), newest-active lookup, resume after a strict plan ended. Also: re-owning a session fetched from another context, tags from the most recent block with no active block, advancing off a completed strict block on resume, and falling back when `activeBlockOrder` is stale.
