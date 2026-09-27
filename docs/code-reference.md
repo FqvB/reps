@@ -214,6 +214,17 @@ Bulk library writes (F15, §5.3c).
 - `restore(_:in:)`: writes snapshots back, skipping deleted shots
 - `delete(ids:in:clipFiles:) throws -> [UUID]`: deletes the rows, saves, then `removeClip` per clip file (ADR 0013 order); block counters untouched
 
+## Reps/Library/ClipPlayback.swift
+Clip player math and copy (F27, §5.3b); pure, tested.
+- `PlaybackSpeed` (1×, ½×, ¼×): `next` cycles, `title`
+- `ClipEventKind` (address, top, impact, finish), `ClipEvent(kind:seconds:)`
+- `ClipPlayback.frameDuration(nominalFrameRate:)`: 1/rate, 60 fps fallback
+- `ClipPlayback.stepped(from:by:frameDuration:duration:)`: middle of the frame `count` away, clamped to the clip
+- `ClipPlayback.isAtEnd`, `fraction`, `seconds(atFraction:duration:)`, `timeTitle` ("2.098"), `filmstripTimes(count:duration:)`
+- `ClipPlayback.events(duration:impactOffset:)`: impact at `assumedImpactOffset` (3 s, §5.8) when inside the clip; the rest #27
+- `ClipPlayback.snapped(_:to:duration:trackWidth:tolerance:)`: jump to a mark released within `tolerance` points
+- `ClipPlayback.label(_:)`: "Gap wedge · face-on · tempo 3.1 : 1"
+
 ## Reps/Bag/BagCatalog.swift
 Standard clubs for the bag grid (Figma 08) and the default bag (F19); nonisolated.
 - `Group(title:clubs:)`; `groups`: Woods, Hybrids, Irons, Wedges, Putter; `allClubs`: flattened; `defaultBag`: the common 14 for onboarding (#5) to seed
@@ -294,7 +305,7 @@ Settings → My bag.
 
 ## Reps/UI/Library/LibraryView.swift
 Figma 04 Library tab.
-- `LibraryView(clipFiles:)`: `@Query` shots with `clipFileName != nil` by timestamp desc (the only SQL predicate, Q23); search + `LibraryFilterBar`; 2-column `LazyVGrid` of `ClipTile`; tap pushes `ClipDetailPlaceholderView`, long-press/"Select" starts bulk mode (`LibraryBulkBar`, `LibraryTagSheet`); Undo toast per bulk action; delete is hidden until the toast ends, then `LibraryEdits.delete` + thumbnail cleanup; `NoClipFiles` until #22
+- `LibraryView(clipFiles:)`: `@Query` shots with `clipFileName != nil` by timestamp desc (the only SQL predicate, Q23); search + `LibraryFilterBar`; 2-column `LazyVGrid` of `ClipTile`; tap opens `ClipDetailView` full screen (ends the undo window first); player favourite/tag edits save at once; player delete runs `LibraryEdits.delete` after the cover closes; long-press/"Select" starts bulk mode (`LibraryBulkBar`, `LibraryTagSheet`); Undo toast per bulk action; delete is hidden until the toast ends, then `LibraryEdits.delete` + thumbnail cleanup; `NoClipFiles` until #22
 - `PreviewData.libraryContainer()` (DEBUG): 8 clips without files
 
 ## Reps/UI/Library/ClipTile.swift
@@ -312,8 +323,21 @@ Figma 04 Library tab.
 ## Reps/UI/Library/LibraryBulkBar.swift
 - `LibraryBulkBar(clubs:isEnabled:favouriteTarget:onClub:onTags:onFavourite:onDelete:)`: bottom bar in bulk mode (no Figma frame)
 
-## Reps/UI/Library/ClipDetailPlaceholderView.swift
-- `ClipDetailPlaceholderView(clip:)`: `TODO(#25)` player
+## Reps/UI/Library/ClipDetailTheme.swift
+Figma 11 values: `Theme.playerPill`, `Theme.playerTrack`, `Theme.Typography.playerLabel/playerTime/playerSpeed/playerIcon/playerStep`, `ClipDetailMetrics`.
+
+## Reps/UI/Library/PlayerLayerView.swift
+- `PlayerLayerView(player:)`: `AVPlayerLayer` host, aspect fit on black, no system controls
+
+## Reps/UI/Library/ClipPlayer.swift
+- `ClipPlayer` (@Observable): `load(_:filmstripCount:)` (`.missing` for nil/missing/undecodable files), `togglePlay`, `pause`, `cycleSpeed`, `step(by:)`, `seek(to:)` (zero tolerance), `scrub(to:)`/`endScrub(at:)`, `stop`; publishes `state`, `duration`, `frameDuration`, `currentTime`, `isPlaying`, `speed`, `filmstrip` (10 frames via `AVAssetImageGenerator.images(for:)`)
+
+## Reps/UI/Library/ClipScrubber.swift
+- `ClipScrubber(player:events:)`: filmstrip with yellow playhead (drag to scrub), time, track with event marks and knob (release near a mark jumps to it), pose toggle (#27, disabled)
+
+## Reps/UI/Library/ClipDetailView.swift
+Figma 11, 15. Presented full screen by `LibraryView`.
+- `ClipDetailView(clip:tagSuggestions:onFavourite:onAddTag:onRemoveTag:onDelete:)`: ✕, ★, share (#26), more (Tags sheet, Save to Photos (#26), Delete with confirm alert), label pill, scrubber, speed / frame step / play, overlay options (#27); missing-file placeholder
 
 ## Reps/UI/Library/LibraryTheme.swift
 Figma 04 values: `Theme.Typography.filterChip/filterChipSelected/resultCount/tileTitle/tileDetail/tileTempo/tileStar/tilePlay`, `Theme.Spacing.gridGap`, `Theme.Radius.tile`, `LibraryMetrics.thumbnailHeight/playSize`
@@ -407,6 +431,9 @@ Filter AND semantics, ordering, options and tile copy (fixed UTC calendar, en_US
 
 ## RepsTests/LibraryEditsTests.swift
 Bulk edits, undo snapshots and delete order against an in-memory store with `ClipSpy`.
+
+## RepsTests/ClipPlaybackTests.swift
+- Speed cycle, frame duration, frame step and clamping, end, fraction/seconds, time title, filmstrip times, impact mark, snapping, label pill
 
 ## RepsTests/ClipStorageTests.swift
 Clip usage summing; `ClipURLTests`: valid clip path resolution, unsafe names rejected.

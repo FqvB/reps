@@ -13,7 +13,8 @@ struct LibraryView: View {
     private var shots: [ShotRecord]
     @Query(sort: [SortDescriptor(\BagClub.sortOrder), SortDescriptor(\BagClub.name)]) private var bag: [BagClub]
     @State private var filter = LibraryFilter()
-    @State private var path: [UUID] = []
+    @State private var detail: LibraryClip?
+    @State private var detailDeleteID: UUID?
     @State private var isSelecting = false
     @State private var selection: Set<UUID> = []
     @State private var pendingDelete: Set<UUID> = []
@@ -25,7 +26,7 @@ struct LibraryView: View {
         let all = shots.compactMap(LibraryClip.init)
         let clips = LibraryDisplay.visible(all, filter: filter, hidden: pendingDelete)
         let byID = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        NavigationStack(path: $path) {
+        NavigationStack {
             ScrollView {
                 LibraryFilterBar(
                     filter: $filter,
@@ -90,8 +91,22 @@ struct LibraryView: View {
                 }
             }
             .undoToastTimer($lastUndo)
-            .navigationDestination(for: UUID.self) { id in
-                if let clip = byID[id] { ClipDetailPlaceholderView(clip: clip) }
+            .fullScreenCover(item: $detail, onDismiss: commitDetailDelete) { item in
+                ClipDetailView(
+                    clip: byID[item.id] ?? item,
+                    tagSuggestions: LibraryDisplay.tagOptions(all),
+                    onFavourite: { value in
+                        try editDetail(item.id) { try LibraryEdits.setFavourite(value, on: $0, in: context) }
+                    },
+                    onAddTag: { tag in try editDetail(item.id) { try LibraryEdits.addTag(tag, to: $0, in: context) } },
+                    onRemoveTag: { tag in
+                        try editDetail(item.id) { try LibraryEdits.removeTag(tag, from: $0, in: context) }
+                    },
+                    onDelete: {
+                        detailDeleteID = item.id
+                        detail = nil
+                    }
+                )
             }
             .sheet(isPresented: $isTagSheetShown) {
                 let selected = selection.compactMap { byID[$0] }
@@ -166,7 +181,9 @@ struct LibraryView: View {
 
     private func tap(_ clip: LibraryClip) {
         guard isSelecting else {
-            path.append(clip.id)
+            // Opening a clip ends any undo window, so a later Undo can't overwrite edits made in the player.
+            finishUndo()
+            detail = clip
             return
         }
         if selection.contains(clip.id) { selection.remove(clip.id) } else { selection.insert(clip.id) }
@@ -213,6 +230,25 @@ struct LibraryView: View {
         stopSelecting()
         withAnimation {
             lastUndo = LibraryUndo(message: LibraryDisplay.undoMessage("Deleted", count: ids.count), kind: .delete(ids))
+        }
+    }
+
+    // Player edits (Figma 11): one shot, saved at once, no toast; the player shows its own error.
+    private func editDetail(_ id: UUID, _ edit: ([ShotRecord]) throws -> [ShotSnapshot]) throws {
+        let targets = shots.filter { $0.id == id }
+        guard !targets.isEmpty else { return }
+        _ = try edit(targets)
+    }
+
+    // Figma 15: confirmed in the player, so no Undo. Runs once the player has closed (same path as bulk delete).
+    private func commitDetailDelete() {
+        guard let id = detailDeleteID else { return }
+        detailDeleteID = nil
+        do {
+            let deleted = try LibraryEdits.delete(ids: [id], in: context, clipFiles: clipFiles)
+            Task { await ClipThumbnails.shared.remove(deleted) }
+        } catch {
+            errorMessage = "Couldn't delete the clip."  // PLACEHOLDER: error copy (#29)
         }
     }
 
