@@ -160,4 +160,45 @@ struct ExportTests {
     func bareFileName(path: String, expected: String) {
         #expect(RepsExport.bareFileName(path) == expected)
     }
+
+    @Test(arguments: [
+        (1_790_000_020.123, ".123Z"),
+        (1_790_000_020.001, ".001Z"),
+        (1_790_000_020.007, ".007Z"),
+    ])
+    func millisecondsRoundToNearest(seconds: Double, suffix: String) {
+        #expect(ExportCoding.encodeDate(Date(timeIntervalSince1970: seconds)).hasSuffix(suffix))
+    }
+
+    @Test func subMillisecondDatesRoundConsistently() throws {
+        let raw = 1_790_000_020.1234567
+        let document = ExportDocument(
+            formatVersion: 1, exportedAt: Date(timeIntervalSince1970: raw), bag: [], plans: [], sessions: [])
+        let encoded = try ExportCoding.encode(document)
+        let decoded = try ExportCoding.decode(encoded)
+        #expect(try ExportCoding.encode(decoded) == encoded)
+        let expected = Date(timeIntervalSince1970: (raw * 1000).rounded() / 1000)
+        #expect(decoded.exportedAt == expected)
+    }
+
+    @Test func preEpochDateRoundTrips() throws {
+        let document = ExportDocument(
+            formatVersion: 1, exportedAt: Date(timeIntervalSince1970: -1_000_000.125), bag: [], plans: [],
+            sessions: [])
+        let encoded = try ExportCoding.encode(document)
+        #expect(try ExportCoding.decode(encoded) == document)
+    }
+
+    @Test func clubsWithEqualSortOrderAreOrderedDeterministically() {
+        let a = BagClub(name: "Wedge", sortOrder: 5)
+        let b = BagClub(name: "Driver", sortOrder: 5)
+        #expect(
+            RepsExport.document(clubs: [a, b], plans: [], sessions: [], exportedAt: t0).bag.map(\.name) == [
+                "Driver", "Wedge",
+            ])
+        #expect(
+            RepsExport.document(clubs: [b, a], plans: [], sessions: [], exportedAt: t0).bag.map(\.name) == [
+                "Driver", "Wedge",
+            ])
+    }
 }

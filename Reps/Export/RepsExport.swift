@@ -12,9 +12,12 @@ enum RepsExport {
         ExportDocument(
             formatVersion: ExportDocument.currentFormatVersion,
             exportedAt: exportedAt,
-            bag: clubs.sorted { $0.sortOrder < $1.sortOrder }.map(club),
-            plans: plans.sorted { $0.createdAt < $1.createdAt }.map(plan),
-            sessions: sessions.filter { $0.status == .finished }.sorted { $0.startedAt < $1.startedAt }.map(session)
+            bag: clubs.sorted { ($0.sortOrder, $0.name, $0.id.uuidString) < ($1.sortOrder, $1.name, $1.id.uuidString) }
+                .map(club),
+            plans: plans.sorted { ($0.createdAt, $0.id.uuidString) < ($1.createdAt, $1.id.uuidString) }.map(plan),
+            sessions: sessions.filter { $0.status == .finished }
+                .sorted { ($0.startedAt, $0.id.uuidString) < ($1.startedAt, $1.id.uuidString) }
+                .map(session)
         )
     }
 
@@ -94,14 +97,17 @@ enum RepsExport {
 }
 
 nonisolated enum ExportCoding {
-    private static let dateStyle = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
+    // Whole-second ISO 8601 UTC ("...ssZ"); milliseconds are spliced in
+    // ourselves. Date.ISO8601FormatStyle's own fractional-seconds mode goes
+    // through a float that truncates (…20.123 -> ".122Z"), so we never use it.
+    private static let wholeSecondStyle = Date.ISO8601FormatStyle(includingFractionalSeconds: false)
 
     static func encode(_ document: ExportDocument) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         encoder.dateEncodingStrategy = .custom { date, encoder in
             var container = encoder.singleValueContainer()
-            try container.encode(date.formatted(dateStyle))
+            try container.encode(encodeDate(date))
         }
         return try encoder.encode(document)
     }
@@ -111,8 +117,38 @@ nonisolated enum ExportCoding {
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let string = try container.decode(String.self)
-            return try dateStyle.parse(string)
+            return try decodeDate(string)
         }
         return try decoder.decode(ExportDocument.self, from: data)
+    }
+
+    static func encodeDate(_ date: Date) -> String {
+        let totalMs = Int64((date.timeIntervalSince1970 * 1000).rounded())
+        var seconds = totalMs / 1000
+        var remainderMs = totalMs % 1000
+        if remainderMs < 0 {
+            remainderMs += 1000
+            seconds -= 1
+        }
+        let whole = Date(timeIntervalSince1970: Double(seconds)).formatted(wholeSecondStyle)
+        return "\(whole.dropLast()).\(String(format: "%03d", remainderMs))Z"
+    }
+
+    static func decodeDate(_ string: String) throws -> Date {
+        guard string.hasSuffix("Z"), let dotIndex = string.lastIndex(of: ".") else {
+            throw invalidDate(string)
+        }
+        let secondsPart = string[..<dotIndex]
+        let msPart = string[string.index(after: dotIndex)..<string.index(before: string.endIndex)]
+        guard msPart.count == 3, let ms = Int(msPart) else {
+            throw invalidDate(string)
+        }
+        let whole = try wholeSecondStyle.parse(String(secondsPart) + "Z")
+        let exact = whole.timeIntervalSince1970 + Double(ms) / 1000
+        return Date(timeIntervalSince1970: (exact * 1000).rounded() / 1000)
+    }
+
+    private static func invalidDate(_ string: String) -> DecodingError {
+        DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Invalid ISO 8601 date: \(string)"))
     }
 }

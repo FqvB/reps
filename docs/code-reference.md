@@ -37,19 +37,19 @@ Pure completion math (spec §5.1, F21), nonisolated.
 
 ## Reps/Model/PracticePlan.swift
 - `PracticePlan(name:mode:isOrderMandatory:isStrictCount:createdAt:)`: reusable plan; `blocks` cascade, `sessions` nullify
-- `sortedBlocks`: blocks by `order`
+- `sortedBlocks`: blocks by `(order, id)`, so ties are stable
 
 ## Reps/Model/PlanBlock.swift
 - `PlanBlock(clubName:targetReps:note:order:)`: one block of a plan; `results` nullify on delete
 
 ## Reps/Model/PracticeSession.swift
 - `PracticeSession(plan:mode:cameraAngle:startedAt:)`: one run (plan nil = free session); copies `planName`; `status` starts `.active`; `blockResults` cascade
-- `sortedBlockResults`: by `order`; `completion`: `Completion.session` over the results
+- `sortedBlockResults`: by `(order, id)`; `completion`: `Completion.session` over the results
 
 ## Reps/Model/BlockResult.swift
 - `BlockResult(block:order:)`: result for a plan block; copies `clubName` and `targetReps`
 - `BlockResult(clubName:tags:order:)`: free-session block, no target
-- `tally`: `BlockTally` for completion; `sortedShots`: by `timestamp`; `shots` cascade
+- `tally`: `BlockTally` for completion; `sortedShots`: by `(timestamp, id)`; `shots` cascade
 
 ## Reps/Model/ShotRecord.swift
 - `ShotRecord(timestamp:detectedBy:clubName:tags:)`: one counted shot; `clipFileName` is the bare `<id>.mov` in `Documents/clips/<sessionId>/` (ADR 0006)
@@ -64,11 +64,12 @@ JSON export format v1 (ADR 0012); property names are the JSON keys.
 - `ExportClub`, `ExportPlan`, `ExportPlanBlock`, `ExportSession`, `ExportBlockResult`, `ExportShot`: raw stored fields, ids for cross references
 
 ## Reps/Export/RepsExport.swift
-- `RepsExport.document(clubs:plans:sessions:exportedAt:) -> ExportDocument`: sorted snapshot; finished sessions only
+- `RepsExport.document(clubs:plans:sessions:exportedAt:) -> ExportDocument`: sorted snapshot; finished sessions only; ties broken by `(sortOrder, name, id)` for clubs, `(createdAt, id)` for plans, `(startedAt, id)` for sessions, so export order is deterministic
 - `RepsExport.document(from:exportedAt:) throws -> ExportDocument`: fetches everything from a context
 - `RepsExport.bareFileName(_:) -> String`: last path component
 - `ExportCoding.encode(_:) throws -> Data`: pretty, sorted keys, ISO 8601 UTC with ms; no file I/O
 - `ExportCoding.decode(_:) throws -> ExportDocument`: inverse of `encode`
+- `ExportCoding.encodeDate(_:) -> String`, `ExportCoding.decodeDate(_:) throws -> Date`: millisecond-rounded ISO 8601 UTC via whole-second formatting + a spliced-in `.mmm`, avoiding `ISO8601FormatStyle`'s fractional-seconds float truncation
 
 ## Reps/Persistence/RepsStore.swift
 Builds the SwiftData container for the app and tests.
@@ -98,7 +99,7 @@ Block and session completion: uncapped, manual adjust, clamping, missing targets
 In-memory store: order indexes, snapshots, delete rules, enum/tag persistence, status predicate.
 
 ## RepsTests/ExportTests.swift
-Export key sets, ordering, finished-only, nil omission, ISO dates, clip file names, round trip, determinism.
+Export key sets, ordering (including sort-key ties), finished-only, nil omission, ISO dates (ms rounding, sub-ms and pre-epoch dates), clip file names, round trip, determinism.
 
 ## DetectorEvalTests/MLData.swift
 Locates the hitreg-ml checkout (ADR 0007).

@@ -31,6 +31,6 @@ final class PracticePlan {
     }
 
     var sortedBlocks: [PlanBlock] {
-        blocks.sorted { $0.order < $1.order }
+        blocks.sorted { ($0.order, $0.id.uuidString) < ($1.order, $1.id.uuidString) }
     }
 }

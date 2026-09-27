@@ -36,6 +36,6 @@ final class BlockResult {
     }
 
     var sortedShots: [ShotRecord] {
-        shots.sorted { $0.timestamp < $1.timestamp }
+        shots.sorted { ($0.timestamp, $0.id.uuidString) < ($1.timestamp, $1.id.uuidString) }
     }
 }

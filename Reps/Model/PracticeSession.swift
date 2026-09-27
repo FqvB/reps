@@ -24,7 +24,7 @@ final class PracticeSession {
     }
 
     var sortedBlockResults: [BlockResult] {
-        blockResults.sorted { $0.order < $1.order }
+        blockResults.sorted { ($0.order, $0.id.uuidString) < ($1.order, $1.id.uuidString) }
     }
 
     var completion: Double? {
