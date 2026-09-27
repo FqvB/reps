@@ -176,6 +176,14 @@ Turns session events into speech, one line at a time, never overlapping (F6, §5
 - `handle(_:)`: reads `AppSettings.announceCount` on every call (mid-session toggle); a new count replaces any unspoken count, callouts are never dropped, the line being spoken always finishes; `sessionSaved` clears the queue and cuts in with `stop()`; never calls back into the controller (ADR 0013)
 - A `generation` counter ignores a late `finished` from a line `stop()` already cancelled
 
+## Reps/Voice/SystemSpeaker.swift
+AVSpeechSynthesizer behind `Speaker` (§5.7, §6); build-only, checked by ear on a device.
+- `SystemSpeaker`: `prepare()` sets the audio category and renders "Ready" with `write(_:toBufferCallback:)` to load the voice silently (idempotent); `speak(_:finished:)` prepares, activates audio if needed, tracks the utterance by `ObjectIdentifier`, and starts a 6 s timeout that force-stops a line that never reports back; `stop()` cancels the timeout and the synthesizer without calling `finished`
+- `AVSpeechSynthesizerDelegate` `didFinish`/`didCancel` are `nonisolated`, hop to MainActor and call `ended(_:)`, which ignores the warm-up utterance and anything `stop()` already dropped
+- Deactivates audio 0.6 s after the last line ends if nothing new started (`scheduleRelease`/`releaseAudio`)
+- `englishVoice()`: device English variant or `en-US`; prefers an installed enhanced/premium voice, excluding novelty/personal voices (Q12)
+- `VoiceAudioSession`: the only code touching the app's audio session; `configure()` sets `.playback`/`.voicePrompt`/`[.duckOthers]` once; `activate()`/`deactivate()` (the latter passes `.notifyOthersOnDeactivation`); all `try?` (voice failures never block counting); #22 revisits it (Q41)
+
 ## Reps/Plans/PlanDraft.swift
 The plan editor's working copy (spec F1, F24, F28); nonisolated values, nothing persisted.
 - `BlockDraft(id:clubName:targetReps:note:)`: `repsRange` 1...999, `defaultReps` 30; `trimmedClubName`, `storedNote` (trimmed, nil if blank), `isValid`, `adjustReps(by:)` clamps
