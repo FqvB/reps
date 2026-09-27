@@ -1,0 +1,560 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}</style><style>:root{color-scheme:light dark;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}}:root[data-theme="dark"]{color-scheme:dark;--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}:root[data-theme="light"]{color-scheme:light}@media print{:root,:root[data-theme="dark"]{color-scheme:light;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}}body{background:var(--md-bg);color:var(--md-text);max-width:720px;margin:0 auto;padding:32px;display:flex;flex-direction:column;gap:10px;font:14px/1.55 -apple-system,BlinkMacSystemFont,'SF Pro','Segoe UI',sans-serif;overflow-wrap:break-word}body>:first-child{margin-top:0}h1,h2,h3,h4,h5,h6{margin:6px 0 0;line-height:1.25;font-weight:600;text-wrap:balance}h1{font-size:1.35em}h2{font-size:1.15em;color:var(--md-muted)}h3,h4,h5,h6{font-size:1em}p,ul,ol,blockquote,table,pre,hr{margin:0}strong{font-weight:600}a{color:var(--md-link);text-decoration:none}a:hover{text-decoration:underline}ul,ol{display:flex;flex-direction:column;gap:6px;padding-left:22px}ul{list-style:disc}ol{list-style:decimal}:is(li,td,th)>*+:is(p,ul,ol,blockquote){margin-top:6px}blockquote{display:flex;flex-direction:column;gap:10px;border-left:2px solid var(--md-rule);padding-left:10px;color:var(--md-muted)}:not(pre)>code{background:var(--md-fill);padding:1px 3px;border-radius:4px;font:.92em 'SF Mono',ui-monospace,Menlo,Consolas,monospace}a>code{background:none;color:inherit}pre{background:var(--md-fill);padding:10px 12px;border-radius:6px;overflow-x:auto;font:12px/1.5 'SF Mono',ui-monospace,Menlo,Consolas,monospace;margin-block:4px}pre code{background:none;padding:0;font:inherit}table{width:100%;border-collapse:separate;border-spacing:2px;font:inherit}th,td{padding:6px 8px;border-radius:3px;text-align:left;vertical-align:top}th{background:var(--md-fill-strong);font-weight:600}td{background:var(--md-fill)}:is(th,td) :not(pre)>code{background:transparent}hr{border:0;border-top:1px solid var(--md-rule-strong);margin-block:10px}img{max-width:100%;height:auto;border-radius:4px}</style>
+</head><body>
+<h1>Golf Rep Counter — MVP Design Doc</h1>
+<p>Working title: <strong>Reps</strong> (rename whenever). Status: draft v9, 2026-09-17 (v9: ball-gated fusion; v8: dark full-bleed clip player; v7: microphone removed from detection; v6: frame-by-frame review, accident-proofing states; v2: free sessions, library + tags, tempo, Create ML path; v3: order toggle, coach system noted; v4: white theme, custom bag, onboarding, clickable prototype; v5: minimums + strict count, session summary, swipe to delete, settings, clip detail).
+Figma: <a href="https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1">https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1</a>
+Audience: Emils, building this for personal use first. iOS only.</p>
+<hr>
+<h2>1. Problem</h2>
+<p>Structured practice means hitting a fixed number of shots per club (e.g. 40 × 8-iron, 30 × 9-iron) and a fixed number of putts per drill. Counting by hand is unreliable and breaks focus. A phone on a tripod already sits there for swing video, so it should also do the counting and tell you the count out loud.</p>
+<h2>2. Requirements</h2>
+<h3>Functional</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Requirement</th>
+<th>MVP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1</td>
+<td>Create practice plans: an ordered list of blocks, each with club, target reps, optional note (e.g. target distance)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F2</td>
+<td>Run a plan as a session; advance block automatically when target reps reached</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F3</td>
+<td><strong>Mode 1 — Range Counter</strong>: detect each shot from the camera, no recording</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F4</td>
+<td><strong>Mode 2 — Range Counter + Clips</strong>: same as Mode 1, plus save a trimmed video clip of every counted shot</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F5</td>
+<td><strong>Mode 3 — Putting Counter</strong>: stationary phone on the mat, count every putt struck</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F6</td>
+<td>Voice announces the count after every rep (&quot;twelve&quot;), and the block change (&quot;nine iron, thirty reps&quot;)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F7</td>
+<td>Manual +1 / −1 buttons as a fallback when detection misses</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F8</td>
+<td>Session log: date, plan, per-block reps, duration, clips</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F9</td>
+<td>Choose camera angle preset (face-on / down-the-line) — affects only the setup guide overlay and clip label</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F10</td>
+<td>Audio impact detection</td>
+<td><strong>No.</strong> The microphone is only used to record sound on clips — see §3.2</td>
+</tr>
+<tr>
+<td>F11</td>
+<td>Voice control (&quot;next drill&quot;)</td>
+<td>No — later</td>
+</tr>
+<tr>
+<td>F12</td>
+<td>Made-putt detection (ball enters hole)</td>
+<td>No — later</td>
+</tr>
+<tr>
+<td>F13</td>
+<td>Android, cloud sync, sharing, launch-monitor data</td>
+<td>No</td>
+</tr>
+<tr>
+<td>F14</td>
+<td><strong>Free session</strong>: start counting/recording without a plan; a &quot;current club&quot; chip at the top of the screen tags every following shot until changed. If you forget to change it, clips are simply tagged with the wrong club and can be fixed in bulk later</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F15</td>
+<td><strong>Video library</strong>: every clip, filterable by club, angle, date, session, and custom tags. Bulk-select to retag, favourite, or delete</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F16</td>
+<td><strong>Custom tags</strong> set while recording (e.g. &quot;fade&quot;, &quot;gate drill&quot;) apply to every shot until removed, same as the club chip</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F17</td>
+<td><strong>Swing tempo</strong> (backswing : downswing ratio) computed from pose per shot, shown on the clip and optionally spoken with the count</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F18</td>
+<td><strong>Order toggle per plan</strong>: &quot;Order is mandatory&quot; off (default) lets you jump to any block from the session's block strip and come back later; on locks the sequence. A block is complete when its count reaches target regardless of the order it was done in</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F19</td>
+<td><strong>Your bag</strong>: a user-defined club list set during onboarding (defaults to a common 14) and editable in Settings; the plan editor's club picker shows only these clubs, plus custom-named clubs</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F20</td>
+<td><strong>Onboarding</strong>: three screens — welcome, your bag, camera/microphone permissions with default angle</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F21</td>
+<td><strong>Targets are minimums</strong>: a block's target is the minimum, not a cap. Keep hitting and the count goes past target; completion is reported as a percentage and can exceed 100%</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F22</td>
+<td><strong>Strict count toggle per plan</strong>: on, a block ends exactly at target and the voice tells you to stop (test drills); off (default), targets are minimums (warm-ups, volume work)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F23</td>
+<td><strong>Session summary</strong> on End: overall completion %, per-block done/target with %, clips saved, average tempo, manual fixes; &quot;Keep going&quot; returns to the session, &quot;Done&quot; saves</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F24</td>
+<td><strong>Swipe to delete</strong> a block in the plan editor, with undo via the standard iOS toast</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F25</td>
+<td><strong>Settings</strong>: my bag, default angle, clip quality, save-to-Photos, record audio on clips, voice toggles, storage, version</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F27</td>
+<td><strong>Frame-by-frame review</strong> on the clip detail: filmstrip, single-frame step, ¼/½/1× speed, and jump-to-event chips (address, top, impact, finish) placed by the pose model</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F28</td>
+<td><strong>Accident-proofing</strong>: ending a session never saves until Done, and the summary has Continue session; Next block before target asks first; Cancel with unsaved plan edits asks first; deleting a clip asks first; deleting a block gets an undo toast</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>F26</td>
+<td><strong>Voice guidance</strong> beyond the count (&quot;keep going&quot;, &quot;last five&quot;, &quot;stop&quot;, &quot;next block&quot;)</td>
+<td>Later — design last, after the counter is trusted</td>
+</tr>
+</tbody>
+</table>
+<h3>Non-functional</h3>
+<ul>
+<li>Detection accuracy on the range: ≥ 95% of real shots counted, ≤ 1 false count per 50 shots. Below that the manual buttons get used more than the camera and the app is pointless.</li>
+<li>Latency from impact to voice callout: &lt; 1.5 s.</li>
+<li>Must survive a 90-minute range session outdoors. Onform runs continuous pose + auto-clipping on the same iPhone 15 Pro all session without visible throttling, so this is achievable; the budget in §5.6 is the discipline that keeps it that way.</li>
+<li>One-handed, glove-on usability: every action during a session is a large tap target; the live screen shows one big number and one chip.</li>
+<li>Works fully offline. All data on device.</li>
+<li>Zero cost to run (no backend).</li>
+</ul>
+<h3>Constraints</h3>
+<ul>
+<li>Solo developer, evenings/weekends around uni and golf.</li>
+<li>Existing skills: Python, TypeScript, React Native/Expo. New to Swift; learning it is part of the project.</li>
+<li>Hardware: iPhone 15 Pro, MacBook Pro (M5 Pro), one tripod. Right-handed golfer (matters only for setup overlays).</li>
+</ul>
+<h2>3. Key decisions</h2>
+<h3>3.1 Native Swift, not React Native</h3>
+<p>This app is 80% camera pipeline and on-device vision. React Native would need a native frame-processor plugin in Swift anyway, so you'd be writing Swift plus a bridge layer plus fighting Expo's camera abstractions. Go straight to <strong>Swift + SwiftUI + AVFoundation + Vision</strong>. Learning cost is real (2–3 weeks to get comfortable) but it removes an entire layer of problems.</p>
+<p>Trade-off: you lose your RN productivity for the UI screens. The UI here is small — plan editor, session screen, log — so that's a cheap loss.</p>
+<h3>3.2 Detection by fusion, not by color</h3>
+<p>Color detection was the original idea; drop it. Onform's auto-detect (the benchmark you named) works from the golfer's body — it's a trained ML model that recognises the swing motion, which is why it ignores re-tees and why it's iOS-only (it leans on Apple's Vision/Neural Engine). We do the same, with one extra signal they don't need because they only record, they don't count:</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>What it answers</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Swing event</strong></td>
+<td>&quot;Did a full swing just happen?&quot;</td>
+<td>Vision body pose (<code>VNDetectHumanBodyPoseRequest</code>) → a trained classifier on keypoint windows. Create ML Action Classifier first, own PyTorch model second (see the ML roadmap). The wrist heuristic in §5.3 is only the day-one baseline</td>
+</tr>
+<tr>
+<td><strong>Ball absence</strong></td>
+<td>&quot;Did the ball leave?&quot;</td>
+<td>Small region around the ball the user taps once at setup; compare against a reference patch</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Shot = swing event AND ball gone within ±0.5 s of the swing's low point.</strong></p>
+<p><strong>The camera is king.</strong> There is no audio signal in the decision. Impact sound was considered and rejected: wind swamps it, a golfer two metres away in the next bay produces identical strikes, and a clean strike on a mat is quieter than a fat one. Any rule that lets the microphone confirm or veto a shot adds a failure mode the camera doesn't have. The microphone is used for exactly one thing: recording audio on the clips.</p>
+<p>This kills the two failure cases in one rule:</p>
+<ul>
+<li>Practice swing → swing event, ball still there → not counted.</li>
+<li>Re-tee / rake ball over / pick up ball → ball gone, no swing → not counted.</li>
+</ul>
+<p>Putting mode doesn't need pose at all: the phone is stationary on a mat, so ball absence alone is the count.</p>
+<h3>3.3 Continuous record + cut, not ring buffer</h3>
+<p>For clips: record the camera continuously to rolling temp files (e.g. 60 s segments). When a shot is counted, export the range [impact − 3 s, impact + 2 s] to a permanent clip with <code>AVAssetExportSession</code>, then delete old segments. A frame ring buffer in memory is the &quot;smarter&quot; design but 1080p60 × 5 s is ~1 GB of raw frames; not worth it for an MVP.</p>
+<h2>4. High-level design</h2>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│ SwiftUI                                                      │
+│  PlanEditor   SessionScreen (live count, +1/−1)   SessionLog │
+└──────────────┬──────────────────────────────────────────────┘
+               │ observes
+┌──────────────▼──────────────────────────────────────────────┐
+│ SessionController                                            │
+│  - current plan / block / rep count                          │
+│  - takes ShotEvents, advances blocks, triggers voice + clip  │
+└──────┬───────────────┬──────────────────┬───────────────────┘
+       │               │                  │
+┌──────▼──────┐ ┌──────▼────────┐ ┌───────▼─────────┐
+│ VoiceOutput │ │ ClipWriter    │ │ SessionStore    │
+│ AVSpeech-   │ │ rolling temp  │ │ SwiftData:      │
+│ Synthesizer │ │ files + export│ │ plans, sessions │
+└─────────────┘ └──────▲────────┘ └─────────────────┘
+                       │ raw camera stream
+┌──────────────────────┴──────────────────────────────────────┐
+│ CameraPipeline (AVCaptureSession, 1080p60)                   │
+│   every frame  ──► ClipWriter                                │
+│   every Nth frame, downscaled ──► ShotDetector               │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+┌──────────────────────▼──────────────────────────────────────┐
+│ ShotDetector (pure logic, testable against video files)      │
+│   SwingDetector (pose) ─┐                                    │
+│   BallPresenceDetector ─┼─► Fusion state machine ─► ShotEvent│
+│                          (no audio input)                    │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<p>Design rule: <strong>ShotDetector takes frames in and emits events out, with no dependency on AVFoundation.</strong> That makes it runnable against saved videos in unit tests, which is how the algorithm actually gets tuned.</p>
+<h2>5. Deep dive</h2>
+<h3>5.1 Data model (SwiftData)</h3>
+<pre><code class="language-swift">// A reusable template, e.g. &#34;Wedge day&#34;
+@Model class PracticePlan {
+    var name: String
+    var mode: PracticeMode           // .rangeCounter, .rangeCounterWithClips, .putting
+    var isOrderMandatory: Bool       // false = blocks can be done in any order
+    var isStrictCount: Bool          // false = targets are minimums; true = stop exactly at target
+    var blocks: [PlanBlock]          // ordered
+    var createdAt: Date
+}
+
+// The user&#39;s bag, set in onboarding, edited in Settings. Feeds the plan editor&#39;s club picker.
+@Model class BagClub {
+    var name: String                 // &#34;7 iron&#34;, &#34;4 hybrid&#34;, or a custom name
+    var sortOrder: Int
+    var isInBag: Bool                // false = hidden from pickers but kept so old plans still resolve
+}
+
+@Model class PlanBlock {
+    var clubName: String             // &#34;8 iron&#34;, &#34;Putter&#34;
+    var targetReps: Int
+    var note: String?                // &#34;150m, fade&#34;
+    var order: Int
+}
+
+// One run of a plan on a given day, or a free session with no plan
+@Model class PracticeSession {
+    var plan: PracticePlan?           // nil = free session
+    var startedAt: Date
+    var endedAt: Date?
+    var cameraAngle: CameraAngle     // .faceOn, .downTheLine, .none (putting)
+    var blockResults: [BlockResult]
+}
+
+// In a planned session this mirrors a PlanBlock; in a free session a new one
+// starts every time the club chip or tag set changes.
+@Model class BlockResult {
+    var block: PlanBlock?
+    var clubName: String
+    var repsCounted: Int
+    var repsManualAdjust: Int        // net of +1/−1 taps, kept separate for accuracy tracking
+    var shots: [ShotRecord]
+}
+
+@Model class ShotRecord {
+    var timestamp: Date
+    var detectedBy: DetectionSource  // .camera, .manual
+    var clubName: String             // copied from the block so retagging one shot is cheap
+    var tags: [String]               // &#34;fade&#34;, &#34;gate drill&#34; — inherited from the active tag set
+    var isFavourite: Bool
+    var tempoRatio: Double?          // backswing duration / downswing duration, e.g. 3.0
+    var clipFileName: String?        // relative path in app Documents
+}
+</code></pre>
+<p>Club and tags are stored on every shot rather than only on the block, so bulk retagging in the library is a simple update over the selected shots, and library filters are one predicate.</p>
+<p>Completion for a block is <code>(repsCounted + repsManualAdjust) / targetReps</code>, uncapped, so 45 of 30 reports 150%. Session completion is total done over total target, also uncapped.</p>
+<p>Keeping <code>repsManualAdjust</code> separate is deliberate: it tells you the detector's real-world accuracy for free, straight from the log.</p>
+<h3>5.2 Ball presence detector</h3>
+<ol>
+<li><strong>Setup</strong>: user taps the ball on screen. App takes a square region ~3× the ball's apparent diameter, stores it as the reference patch, and shows a small green box.</li>
+<li><strong>Per frame</strong> (downscaled, ~15 fps): compute similarity between the current patch and the reference (normalised cross-correlation is enough; start there, no ML).</li>
+<li><strong>States</strong>:
+<ul>
+<li><code>present</code> — similarity above threshold</li>
+<li><code>occluded</code> — similarity below threshold <em>and</em> significant motion inside the region in the last ~200 ms (hand, club head, shadow moving). No decision made.</li>
+<li><code>absent</code> — similarity below threshold with no motion for K consecutive frames (K = 3 at 15 fps ≈ 200 ms).</li>
+</ul>
+</li>
+<li><strong>Re-arm</strong>: after <code>absent</code>, wait for <code>present</code> to hold for ≥ 1 s before it can emit again. Stops a rolling ball or a re-tee from double-counting.</li>
+</ol>
+<p>The occlusion state matters most for putting, where the putter head sits over the ball before every stroke.</p>
+<p>Known weak spots: strong shadows sweeping across the region (clouds, your own body), and range mats with a texture that resembles the ball. Mitigation is the reference-patch approach plus re-tapping the ball if the box goes red; don't over-engineer before the test footage says you need to.</p>
+<h3>5.3 Swing detector (range modes only)</h3>
+<p>Run <code>VNDetectHumanBodyPoseRequest</code> on the same downscaled frames. Track the wrist midpoint (average of both wrists) over the last 2 s.</p>
+<p>A swing event fires when this sequence happens within ≤ 2 s:</p>
+<ol>
+<li>wrist midpoint rises above shoulder height (top of backswing),</li>
+<li>then drops below hip height fast (downswing),</li>
+<li>then rises again (follow-through).</li>
+</ol>
+<p>Emit the timestamp of step 2's lowest point as the <strong>impact estimate</strong>.</p>
+<p>This heuristic will be ~90% right and take one evening. It is the baseline the trained classifier has to beat; the ML roadmap covers replacing it with Create ML and then your own model.</p>
+<h3>5.3a Tempo</h3>
+<p>Free once pose is running. From the wrist-midpoint track around a counted shot:</p>
+<ul>
+<li><strong>takeaway</strong> = first frame the wrists move away from address by more than a small threshold</li>
+<li><strong>top</strong> = frame of maximum wrist height before impact</li>
+<li><strong>impact</strong> = the classifier's impact estimate, refined to the frame of lowest wrist point</li>
+</ul>
+<p><code>tempoRatio = (top − takeaway) / (impact − top)</code>. Tour reference is about 3:1. Display to one decimal on the clip; speak it only if the setting is on (&quot;twelve, three point one&quot;). Putting mode: skip.</p>
+<h3>5.3b Video library and tags</h3>
+<ul>
+<li>One screen: a grid of clip thumbnails, newest first, with a filter bar (club, angle, date range, session, tag, favourites). Filters are <code>AND</code>.</li>
+<li>Every clip shows club, angle, tempo, and tags on its thumbnail.</li>
+<li>Bulk mode: long-press → multi-select → retag club, add/remove tag, favourite, delete. This is the fix for &quot;forgot to change the chip for 40 shots.&quot;</li>
+<li>Tags are free text with autocomplete from your history; no tag management screen in the MVP.</li>
+<li>Clip detail is the one dark screen in the app, modelled on Onform's player: the video fills the screen edge to edge, and every control floats over it in translucent pills. Top: close, favourite, share, more (tags, delete, save to Photos live under &quot;more&quot;). Bottom: a filmstrip scrubber with a yellow playhead, the time in seconds, and event marks on the track (address, top, impact in red, finish), then a row with speed, previous-frame / play / next-frame, and overlay options. Frame stepping is the point of the screen; nothing else competes with it. Event positions come from the same pose track that computes tempo.</li>
+</ul>
+<h3>5.3c Quality of life that isn't on a screen</h3>
+<ul>
+<li>Plans list: swipe a plan for Duplicate / Delete; delete asks first.</li>
+<li>Onboarding bag screen has &quot;Use the default bag&quot; so a first session is two taps away.</li>
+<li>Session screen keeps the display awake and dims after 30 s; any tap restores it.</li>
+<li>Undo toast lasts 5 s for block deletion and bulk library actions.</li>
+<li>Thumbnails are generated once at export time (impact frame) and cached; the grid never decodes video.</li>
+</ul>
+<h3>5.4 Fusion: gate on the ball</h3>
+<p>The ball watcher runs every frame; it's cheap. The pose model runs only when asked. The pose buffer (last ~1.5 s of normalised keypoints) is kept continuously but not classified.</p>
+<pre><code>idle ──(ball present ≥1s)──► armed
+armed ──(ball absent, confirmed over K frames)──► classify the pose buffer ending at the exit time
+    model says swing, impact within ±0.5 s of ball exit ──► SHOT COUNTED ──► idle
+    model says no swing (re-tee, pickup, rake, gust) ──► idle, nothing counted
+</code></pre>
+<p>Consequences:</p>
+<ul>
+<li>Practice swings never reach the model — the ball stays, so nothing is asked. They cost no false positives and need no special handling.</li>
+<li>The model's only job is recall on real swings plus rejecting the few motions that coincide with a ball leaving: bending to re-tee, picking the ball up, raking a fresh one over. That's a small, recordable negative set.</li>
+<li>The model runs a few dozen times a session instead of 15 times a second. Battery and heat drop with it.</li>
+<li>The ball watcher is now load-bearing, not a helper. It gets its own test matrix: shadow sweeping the box, mat texture, yellow tee markers, ball rolled a few centimetres by the club at address.</li>
+<li>If the model is unsure (probability near threshold), count the shot anyway and flag it in the log; a missed shot annoys more than a rare extra one, and the +1/−1 buttons exist.</li>
+</ul>
+<h3>5.5 Putting mode</h3>
+<p>Same <code>BallPresenceDetector</code>, no pose, tighter thresholds:</p>
+<ul>
+<li>putt = <code>present → occluded → absent</code>, absent held ≥ 300 ms</li>
+<li>re-arm when a ball is present ≥ 1 s</li>
+<li>announce count; block advances at target reps</li>
+</ul>
+<p>Made/missed detection is explicitly out of scope; a second region at the hole is the obvious later extension.</p>
+<h3>5.6 Camera + thermal budget</h3>
+<ul>
+<li>Capture at 1080p60 (clips look good, slow-mo works). Detection processes every 4th frame, downscaled to ~480 px wide. That's 15 fps of vision work, which a recent iPhone handles on the Neural Engine comfortably.</li>
+<li>Watch <code>ProcessInfo.thermalState</code>. At <code>.serious</code>: drop to every 6th frame and stop showing the live preview (keep a black screen with the count). At <code>.critical</code>: stop clips, keep counting.</li>
+<li><code>isIdleTimerDisabled = true</code>, brightness low. Screen only needs to show a big number.</li>
+<li>Mode 1 should be noticeably cooler than Mode 2 because it never writes video. That's the point of having Mode 1.</li>
+</ul>
+<h3>5.7 Voice</h3>
+<p><code>AVSpeechSynthesizer</code>, pre-warmed at session start. Utterances queued, never overlapping. Count after each rep; on block change: &quot;Nine iron. Thirty reps.&quot; At plan end: &quot;Done. Session saved.&quot;</p>
+<h3>5.8 Clips</h3>
+<ul>
+<li>Rolling 60 s temp segments via <code>AVAssetWriter</code>.</li>
+<li>On shot: export [impact − 3 s, impact + 2 s] → <code>Documents/clips/&lt;sessionId&gt;/&lt;index&gt;-&lt;club&gt;-&lt;angle&gt;.mov</code>.</li>
+<li>Delete temp segments older than 2 min.</li>
+<li>Optional &quot;Save to Photos&quot; per clip from the log screen (one call to <code>PHPhotoLibrary</code>). Not automatic — 40 clips a session would flood the camera roll.</li>
+</ul>
+<h2>6. Error handling</h2>
+<table>
+<thead>
+<tr>
+<th>Failure</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ball box drifts / lighting shifts</td>
+<td>Box turns red; tap ball again. Count continues via manual buttons.</td>
+</tr>
+<tr>
+<td>Pose not found (you walked out of frame)</td>
+<td>Detector idles; overlay says &quot;step into frame&quot;. No false counts.</td>
+</tr>
+<tr>
+<td>Thermal critical</td>
+<td>Clips stop, counting continues, one voice warning.</td>
+</tr>
+<tr>
+<td>Export fails</td>
+<td>Shot still counted; <code>clipFileName</code> nil; retry once, then log.</td>
+</tr>
+<tr>
+<td>App killed mid-session</td>
+<td>Session persisted after every shot; reopens with a &quot;resume?&quot; prompt.</td>
+</tr>
+<tr>
+<td>Phone call / Siri / notification interrupts the camera</td>
+<td>Capture pauses, count is kept, voice says &quot;paused&quot;; resumes when the app is foregrounded.</td>
+</tr>
+<tr>
+<td>Battery under 15% during a session</td>
+<td>One voice warning; clips stop at 10%, counting continues.</td>
+</tr>
+<tr>
+<td>Voice callouts while music plays</td>
+<td>Callouts duck other audio (<code>AVAudioSession</code> <code>.duckOthers</code>) rather than stopping it.</td>
+</tr>
+<tr>
+<td>Camera or mic permission denied at onboarding</td>
+<td>Explain what stops working and deep-link to Settings; manual counting still works.</td>
+</tr>
+<tr>
+<td>Ball box turns red for &gt; 10 s</td>
+<td>Voice: &quot;Lost the ball — tap it again.&quot;</td>
+</tr>
+</tbody>
+</table>
+<h2>7. Validation plan (do this before writing detection code)</h2>
+<p><strong>Milestone 0 is footage, not code.</strong> Record on your actual range and mat:</p>
+<ul>
+<li>Range, down-the-line: 40 shots, including 10 practice swings, 5 re-tees, 3 chunks that move the ball a metre, one basket dropped next to the ball.</li>
+<li>Range, face-on: same script.</li>
+<li>Putting mat: 50 putts, including 10 where the putter waggles over the ball, 5 where you pick it up.</li>
+<li>Two lighting conditions (overcast and low sun with long shadows).</li>
+</ul>
+<p>Write the ground-truth counts down while recording. Every version of <code>ShotDetector</code> runs against these files in an XCTest target and reports precision/recall per scenario. Tune thresholds against that, not by standing on the range with Xcode open.</p>
+<h2>8. Milestones</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Deliverable</th>
+<th>Why this order</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M0</td>
+<td>Test footage + ground truth</td>
+<td>Everything else is guessing without it</td>
+</tr>
+<tr>
+<td>M1</td>
+<td>Plans, free session, club chip + tags, manual counter, voice, session log</td>
+<td>Usable on the range immediately with a tap per shot</td>
+</tr>
+<tr>
+<td>M2</td>
+<td>Putting Counter (ball presence only)</td>
+<td>Simplest vision path; proves the camera pipeline</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>Range Counter: Vision pose + Create ML classifier + fusion</td>
+<td>The hard part, built on a working pipeline; Create ML gets it working in days</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>Clips + video library with filters and bulk retag</td>
+<td>Adds the recording layer once counting is trusted</td>
+</tr>
+<tr>
+<td>M5</td>
+<td>Tempo, thermal handling, polish</td>
+<td>Cheap once pose exists</td>
+</tr>
+<tr>
+<td>M6</td>
+<td>Replace Create ML with your own trained model</td>
+<td>Only if it beats Create ML on the event metric</td>
+</tr>
+</tbody>
+</table>
+<p>M1 alone is already better than what you have. Ship it to your own phone in week two and start logging sessions while the vision work continues.</p>
+<h2>9. Trade-offs made explicit</h2>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Chosen</th>
+<th>Alternative</th>
+<th>Cost of the choice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Platform</td>
+<td>Native Swift</td>
+<td>React Native + native plugin</td>
+<td>Learning Swift; slower UI at first</td>
+</tr>
+<tr>
+<td>Swing detection</td>
+<td>Pose heuristic</td>
+<td>Create ML classifier</td>
+<td>Lower ceiling; upgrade path is clear</td>
+</tr>
+<tr>
+<td>Ball detection</td>
+<td>Tapped reference patch</td>
+<td>Trained ball detector (YOLO-style)</td>
+<td>Needs a re-tap when lighting shifts; zero training data needed</td>
+</tr>
+<tr>
+<td>Clips</td>
+<td>Record + cut</td>
+<td>Frame ring buffer</td>
+<td>Extra disk churn; far simpler</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td>SwiftData, local only</td>
+<td>Cloud sync</td>
+<td>No backup beyond iCloud device backup</td>
+</tr>
+<tr>
+<td>Putting makes</td>
+<td>Out of scope</td>
+<td>Hole region</td>
+<td>You count strokes, not makes, for now</td>
+</tr>
+</tbody>
+</table>
+<h2>10. What to revisit if it grows beyond you</h2>
+<ul>
+<li><strong>Detection</strong>: swap the pose heuristic for a Create ML action classifier trained on your accumulated clips; swap the reference patch for a real ball detector so setup needs no tap.</li>
+<li><strong>Putting makes</strong>: second region at the hole; &quot;made&quot; = ball absent at start region <em>and</em> transient presence at hole region.</li>
+<li><strong>Sync/export</strong>: CloudKit is the cheapest path since the data model is already SwiftData.</li>
+<li><strong>Plans as a product</strong>: this is the part other golfers would pay for — plan templates, progression, history charts. The counter is plumbing.</li>
+<li><strong>Coaches</strong> (explicitly post-MVP): a coach account linked to a player sees their plans, daily completion percentage per plan, and clips the player chooses to send. This is the first feature that needs a backend and accounts; everything above it stays local-only, so design the data model so plans and sessions can be exported as JSON without changes.</li>
+<li><strong>Android</strong>: would need a full rewrite of the vision layer (MediaPipe pose, CameraX). Don't plan for it.</li>
+</ul>
+
+</body></html>

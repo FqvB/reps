@@ -1,0 +1,27 @@
+.DS_Store
+xcuserdata/
+DerivedData/
+build/
+*.xcuserstate
+*.xcscmblueprint
+.swiftpm/
+.build/
+Packages/
+*.ipa
+*.dSYM.zip
+*.dSYM
+timeline.xctimeline
+playground.xcworkspace
+
+# Test footage lives outside git (see docs/open-questions.md)
+Footage/
+*.mov
+*.mp4
+
+# ML
+*.mlmodelc
+ml/.venv/
+ml/data/
+ml/runs/
+
+.claude/settings.local.json
