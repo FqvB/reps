@@ -1,12 +1,11 @@
 import SwiftData
 
 enum RepsStore {
-    // Empty until #4 adds the @Model types.
-    static let models: [any PersistentModel.Type] = []
+    static let models: [any PersistentModel.Type] = RepsSchemaCurrent.models
 
     static func makeContainer(inMemory: Bool = false) throws -> ModelContainer {
-        let schema = Schema(models)
+        let schema = Schema(versionedSchema: RepsSchemaCurrent.self)
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
-        return try ModelContainer(for: schema, configurations: [configuration])
+        return try ModelContainer(for: schema, migrationPlan: RepsMigrationPlan.self, configurations: [configuration])
     }
 }

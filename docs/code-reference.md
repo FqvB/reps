@@ -18,10 +18,64 @@ App entry point; opens the SwiftData store and shows the root view.
 Placeholder root screen until the plans list (#7) replaces it.
 - `RootView`: shows the app name
 
+## Reps/Model/ModelEnums.swift
+Stored and exported enums; raw values are frozen (ADR 0012).
+- `PracticeMode`: rangeCounter, rangeCounterWithClips, putting
+- `CameraAngle`: faceOn, downTheLine, none (putting)
+- `DetectionSource`: camera, manual
+- `SessionStatus`: active, finished (ADR 0006)
+
+## Reps/Model/Completion.swift
+Pure completion math (spec §5.1, F21), nonisolated.
+- `BlockTally(counted:manualAdjust:target:)`: `done` = max(0, counted + manualAdjust); `target` nil = free block
+- `Completion.block(_:) -> Double?`: done / target, uncapped; nil without a positive target
+- `Completion.isComplete(_:) -> Bool`: done ≥ target; false without a positive target
+- `Completion.session(_:) -> Double?`: total done / total target over targeted blocks; nil if none
+
+## Reps/Model/BagClub.swift
+- `BagClub(name:sortOrder:isInBag:)`: one club in the user's bag; `isInBag` false hides it from pickers. No relationships.
+
+## Reps/Model/PracticePlan.swift
+- `PracticePlan(name:mode:isOrderMandatory:isStrictCount:createdAt:)`: reusable plan; `blocks` cascade, `sessions` nullify
+- `sortedBlocks`: blocks by `(order, id)`, so ties are stable
+
+## Reps/Model/PlanBlock.swift
+- `PlanBlock(clubName:targetReps:note:order:)`: one block of a plan; `results` nullify on delete
+
+## Reps/Model/PracticeSession.swift
+- `PracticeSession(plan:mode:cameraAngle:startedAt:)`: one run (plan nil = free session); copies `planName`; `status` starts `.active`; `blockResults` cascade
+- `sortedBlockResults`: by `(order, id)`; `completion`: `Completion.session` over the results
+
+## Reps/Model/BlockResult.swift
+- `BlockResult(block:order:)`: result for a plan block; copies `clubName` and `targetReps`
+- `BlockResult(clubName:tags:order:)`: free-session block, no target
+- `tally`: `BlockTally` for completion; `sortedShots`: by `(timestamp, id)`; `shots` cascade
+
+## Reps/Model/ShotRecord.swift
+- `ShotRecord(timestamp:detectedBy:clubName:tags:)`: one counted shot; `clipFileName` is the bare `<id>.mov` in `Documents/clips/<sessionId>/` (ADR 0006)
+
+## Reps/Model/RepsSchema.swift
+- `RepsSchemaV1`: VersionedSchema 1.0.0 with the six models
+- `RepsMigrationPlan`: schemas `[RepsSchemaV1]`, no stages yet
+- `RepsSchemaCurrent`: alias for the schema the app actually runs (`RepsSchemaV1` today)
+
+## Reps/Export/ExportDocument.swift
+JSON export format v1 (ADR 0012); property names are the JSON keys.
+- `ExportDocument`: `formatVersion`, `exportedAt`, `bag`, `plans`, `sessions`; `currentFormatVersion` = 1
+- `ExportClub`, `ExportPlan`, `ExportPlanBlock`, `ExportSession`, `ExportBlockResult`, `ExportShot`: raw stored fields, ids for cross references
+
+## Reps/Export/RepsExport.swift
+- `RepsExport.document(clubs:plans:sessions:exportedAt:) -> ExportDocument`: sorted snapshot; finished sessions only; ties broken by `(sortOrder, name, id)` for clubs, `(createdAt, id)` for plans, `(startedAt, id)` for sessions, so export order is deterministic
+- `RepsExport.document(from:exportedAt:) throws -> ExportDocument`: fetches everything from a context
+- `RepsExport.bareFileName(_:) -> String`: last path component
+- `ExportCoding.encode(_:) throws -> Data`: pretty, sorted keys, ISO 8601 UTC with ms; no file I/O
+- `ExportCoding.decode(_:) throws -> ExportDocument`: inverse of `encode`
+- `ExportCoding.encodeDate(_:) -> String`, `ExportCoding.decodeDate(_:) throws -> Date`: millisecond-rounded ISO 8601 UTC via whole-second formatting + a spliced-in `.mmm`, avoiding `ISO8601FormatStyle`'s fractional-seconds float truncation
+
 ## Reps/Persistence/RepsStore.swift
 Builds the SwiftData container for the app and tests.
-- `RepsStore.models`: the `@Model` types in the schema (empty until #4)
-- `RepsStore.makeContainer(inMemory:) throws -> ModelContainer`: container over `models`; `inMemory: true` for tests
+- `RepsStore.models`: the `@Model` types (`RepsSchemaCurrent.models`)
+- `RepsStore.makeContainer(inMemory:) throws -> ModelContainer`: container over `RepsSchemaCurrent` with `RepsMigrationPlan`; `inMemory: true` for tests
 
 ## ShotDetector/ShotEvent.swift
 Output type of the ShotDetector framework (spec §4). The framework must never import AVFoundation, AVKit, UIKit, SwiftUI or CoreMedia (ADR 0010).
@@ -37,7 +91,17 @@ What detectors are fed.
 - `DetectorInput`: the frame contract for the camera pipeline and the eval harness: `frameRate` 15, `shortSide` 480, `pixelFormat` 420f
 
 ## RepsTests/RepsStoreTests.swift
-- `RepsStoreTests.inMemoryContainerOpens`: the schema opens in an in-memory container
+- `inMemoryContainerOpens`, `schemaHasEveryModel`, `schemaIsVersionOne`
+- `schemaShapeIsPinned`: exact attribute and relationship name sets per entity, so a silent schema change fails loudly (ADR 0012)
+
+## RepsTests/CompletionTests.swift
+Block and session completion: uncapped, manual adjust, clamping, missing targets, skipped blocks.
+
+## RepsTests/ModelTests.swift
+In-memory store: order indexes, snapshots, delete rules (BagClub has no relationships, so it isn't covered here), enum/tag persistence, status predicate.
+
+## RepsTests/ExportTests.swift
+Export key sets, ordering (including sort-key ties), finished-only, nil omission, ISO dates (ms rounding, sub-ms and pre-epoch dates), clip file names, round trip, determinism.
 
 ## DetectorEvalTests/MLData.swift
 Locates the hitreg-ml checkout (ADR 0007).
