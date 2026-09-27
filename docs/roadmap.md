@@ -13,7 +13,7 @@ Goal: a project that builds, footage with ground truth, and a harness that score
 | # | Feature | Spec | Plan | Review | Status |
 |---|---|---|---|---|---|
 | [#1](https://github.com/FqvB/reps/issues/1) | Xcode project scaffold | §4 | opus | – | ☐ |
-| [#2](https://github.com/FqvB/reps/issues/2) | Fill footage gaps: putting + re-tee/pickup (manual, range footage done in hitreg-ml) | §7 | – | – | ☐ |
+| [#2](https://github.com/FqvB/reps/issues/2) | Record putting eval footage (manual, range footage done in hitreg-ml) | §7 | – | – | ☐ |
 | [#3](https://github.com/FqvB/reps/issues/3) | Detector evaluation harness | §4, §7 | opus | opus | ☐ |
 
 ## Phase 1 — Manual counter (M1)
