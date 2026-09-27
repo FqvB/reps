@@ -167,6 +167,15 @@ Session event → spoken text (F6, §5.7); pure, nonisolated, English only (Q12)
 - `block(clubName:target:done:)`: "9 iron. 30 reps." / "…1 rep." / untargeted "9 iron." / returning "9 iron. 12 of 30." (PLACEHOLDER, Q39)
 - `spokenClub(_:)`: `BagCatalog.key` wedge abbreviations (PW/GW/SW/LW) spelled out; everything else trimmed as stored
 
+## Reps/Voice/Speaker.swift
+- `Speaker`: the voice output seam (`SystemSpeaker` in the app, a fake in tests); `prepare()` warms the voice, `speak(_:finished:)` speaks one line and calls `finished` once unless stopped, `stop()` cuts it off without calling `finished`
+
+## Reps/Voice/SpeechAnnouncer.swift
+Turns session events into speech, one line at a time, never overlapping (F6, §5.7). MainActor (app target default).
+- `SpeechAnnouncer(speaker:settings:)`: `prepare()` forwards to the speaker; `pending`, `isSpeaking` exposed for tests
+- `handle(_:)`: reads `AppSettings.announceCount` on every call (mid-session toggle); a new count replaces any unspoken count, callouts are never dropped, the line being spoken always finishes; `sessionSaved` clears the queue and cuts in with `stop()`; never calls back into the controller (ADR 0013)
+- A `generation` counter ignores a late `finished` from a line `stop()` already cancelled
+
 ## Reps/Plans/PlanDraft.swift
 The plan editor's working copy (spec F1, F24, F28); nonisolated values, nothing persisted.
 - `BlockDraft(id:clubName:targetReps:note:)`: `repsRange` 1...999, `defaultReps` 30; `trimmedClubName`, `storedNote` (trimmed, nil if blank), `isValid`, `adjustReps(by:)` clamps
@@ -498,6 +507,10 @@ Default bag seeding: empty store, second run, existing bag untouched.
 
 ## RepsTests/VoiceLinesTests.swift
 Count text, announceCount gating, block callout wording (targeted/single/returning/untargeted), wedge names, target-reached strict vs minimums, plan end, session saved, callouts always speak with announceCount off.
+
+## RepsTests/SpeechAnnouncerTests.swift
+- `FakeSpeaker`: records spoken text, stop/prepare counts and each line's `finished` closure
+- One line at a time, newest count replaces an unspoken one, a count queues behind pending callouts, callouts are never dropped and finish in order, `announceCount` re-read on every event, `sessionSaved` cuts in and clears the queue (idle case doesn't call `stop()`), a late `finished` from a stopped line is ignored
 
 ## DetectorEvalTests/MLData.swift
 Locates the hitreg-ml checkout (ADR 0007).
