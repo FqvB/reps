@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-// Session log (F8). No Figma frame: cards follow 01 Plans, the detail follows 12 Summary (Q31).
+// Session log (F8). No Figma frame: cards follow 01 Plans, the detail follows 12 Summary (Q33).
 struct SessionLogView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \PracticeSession.startedAt, order: .reverse) private var sessions: [PracticeSession]
