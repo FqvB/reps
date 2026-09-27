@@ -15,8 +15,8 @@ App entry point; opens the SwiftData store and shows the root view.
 - `RepsApp`: `@main` app; builds the container with `RepsStore.makeContainer()` (fatal on failure until #29) and attaches it with `.modelContainer(_:)`
 
 ## Reps/App/RootView.swift
-Root TabView: Plans and Library (placeholder until #24).
-- `RootView`: tabs tinted `Theme.accent`; the Start closures are `TODO(#9)`
+Root TabView (Plans, Library) and the session host.
+- `RootView`: owns one `SessionController` (made on first use); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); voice hook is `TODO(#10)`
 
 ## Reps/Model/ModelEnums.swift
 Stored and exported enums; raw values are frozen (ADR 0012).
@@ -107,6 +107,11 @@ The session engine (spec §4, F2, F14, F16, F18, F21, F22, §6; ADR 0013). MainA
 - `setClub(_:)`, `setTags(_:)`: free sessions start a new block unless the current one is unused; planned sessions carry tags across blocks
 - `finish()`: `finished` + `endedAt`, drops unused free blocks, discards the session instead if that leaves none; `discard()`: deletes the session and, only if that save succeeds, its clips
 
+## Reps/Session/SessionDisplay.swift
+Copy and chip states for the session screen; pure values, unit-tested.
+- `BlockSnapshot(order:clubName:note:done:target:)`, `StripChip` (`id` = block order, `state` active/complete/pending, `isSelectable`), `NextBlockPrompt(title:message:)`
+- `SessionDisplay`: `dimDelay` (30 s), `title(planName:)`, `subtitle(mode:angle:)`, `angleTitle(_:)`, `blockTitle(clubName:note:mode:)` (putting uses the note), `countDetail(done:target:note:mode:)`, `stripChips(_:mode:activeOrder:canSelect:isStrict:)` (mirrors `SessionController.select`), `nextBlockPrompt(clubName:done:target:canComeBack:)` (nil at/over target), `elapsed(_:)`, `tagChoices(active:recent:limit:)`, `toggling(_:in:)`, `adding(_:to:)`, `resumeMessage(title:done:mode:)`
+
 ## Reps/Plans/PlanDraft.swift
 The plan editor's working copy (spec F1, F24, F28); nonisolated values, nothing persisted.
 - `BlockDraft(id:clubName:targetReps:note:)`: `repsRange` 1...999, `defaultReps` 30; `trimmedClubName`, `storedNote` (trimmed, nil if blank), `isValid`, `adjustReps(by:)` clamps
@@ -171,6 +176,29 @@ Figma 06.
 ## Reps/UI/PreviewData.swift
 - `PreviewData.container()` (DEBUG): in-memory store with the Figma sample bag and plans, for `#Preview`s only
 
+## Reps/UI/Session/SessionView.swift
+Figma 03, 05, 14. The live session; reads and drives a `SessionController`.
+- `SessionView(controller:)`: nav (End → summary placeholder, title, mode · angle, elapsed), block strip (planned), club + tag chips (range modes), camera placeholder (#13), big count, −1/+1, Next block (asks first before target)
+- `BlockSnapshot.init(_ result: BlockResult)`
+
+## Reps/UI/Session/BlockStrip.swift
+- `BlockStrip(chips:onSelect:)`: horizontal block chips, centres the active one; only selectable chips take taps
+
+## Reps/UI/Session/SessionScreenGuard.swift
+- `View.sessionScreenGuard()`: idle timer off while visible; black overlay after 30 s without a tap, first tap only wakes (§5.3c)
+
+## Reps/UI/Session/FreeClubSheet.swift
+- `FreeClubSheet(current:onPick:)`: bag club grid (`ClubPicker`) plus Other…; a pick closes the sheet (F14)
+
+## Reps/UI/Session/SummaryPlaceholderView.swift
+- `SummaryPlaceholderView(onKeepGoing:onDone:)`: stand-in until #11; Done finishes the session
+
+## Reps/UI/Session/SessionTheme.swift
+Session values from Figma: `Theme.Typography.count` (132 rounded bold), `countTracking`, `countDetail`, `manualButton`, `stripTitle`, `stripDetail`, `navSubtitle`; `Theme.Radius.stripChip`, `preview`.
+
+## Reps/UI/Components/CapsuleChip.swift
+- `CapsuleChip(title:isSelected:action:)`: capsule chip, filled when selected, read-only without an action (session club and tags)
+
 ## ShotDetector/ShotEvent.swift
 Output type of the ShotDetector framework (spec §4). The framework must never import AVFoundation, AVKit, UIKit, SwiftUI or CoreMedia (ADR 0010).
 - `ShotEvent(time:)`: one detected shot; `time` is the detector's estimate of when it happened (impact or ball exit), in seconds on the frame stream's clock
@@ -220,6 +248,9 @@ Bag order, dedupe, off-bag current club.
 
 ## RepsTests/PlanLibraryTests.swift
 In-memory store: create, round trip, edit in place with renumbering, removed blocks keep result snapshots, duplicate deep copy, delete keeps sessions, last done.
+
+## RepsTests/SessionDisplayTests.swift
+Session copy, strip chip states and selectability, Next block prompt, elapsed clock, tag choices, resume message.
 
 ## DetectorEvalTests/MLData.swift
 Locates the hitreg-ml checkout (ADR 0007).

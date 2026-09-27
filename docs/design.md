@@ -23,3 +23,5 @@ The file has a single page for this project, and everything on it is current. Fr
 | Ball lock box + tap override | #15 | no frame; only the preview mock inside 03/05 (node 4:20) |
 | Video library | #24 | [04 Library](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=3-55) |
 | Clip detail | #25 | [11 Clip detail](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=12-108), [15 Delete alert](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=18-105) |
+
+- Session screen (#9): tokens in `Reps/UI/Session/SessionTheme.swift`; dim is an in-app black overlay (0.8) after 30 s, not system brightness (Q29). Camera area is a placeholder until #13.
