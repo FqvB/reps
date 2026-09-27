@@ -12,3 +12,4 @@ One file per decision: `NNNN-short-title.md`, based on `0000-template.md`. Don't
 | [0006](0006-session-and-clip-storage.md) | Active/finished sessions, no uncertainty flag, UUID clip names | Accepted |
 | [0007](0007-hitreg-ml-footage-and-model.md) | hitreg-ml is the footage, ground-truth and model source | Accepted |
 | [0008](0008-putting-absence-is-a-stroke.md) | Putting: ball gone ≥300 ms = stroke, no occlusion state | Accepted |
+| [0009](0009-project-structure.md) | Hand-written synced-folder Xcode project, ShotDetector as a framework | Accepted |

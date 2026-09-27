@@ -12,7 +12,7 @@ Goal: a project that builds, and a harness that scores detectors against the hit
 
 | # | Feature | Spec | Plan | Review | Status |
 |---|---|---|---|---|---|
-| [#1](https://github.com/FqvB/reps/issues/1) | Xcode project scaffold | §4 | opus | – | ☐ |
+| [#1](https://github.com/FqvB/reps/issues/1) | Xcode project scaffold | §4 | opus | – | ☑ |
 | [#3](https://github.com/FqvB/reps/issues/3) | Detector evaluation harness | §4, §7 | opus | opus | ☐ |
 
 ## Phase 1 — Manual counter (M1)
