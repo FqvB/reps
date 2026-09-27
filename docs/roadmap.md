@@ -65,7 +65,7 @@ Goal: add the recording layer once counting is trusted.
 |---|---|---|---|---|---|
 | [#22](https://github.com/FqvB/reps/issues/22) | Clip writer | F4, §3.3, §5.8 | opus | opus + fable-security | ☐ |
 | [#23](https://github.com/FqvB/reps/issues/23) | Thumbnails + storage | §5.3c, F25 | opus | – | ☐ |
-| [#24](https://github.com/FqvB/reps/issues/24) | Video library | F15, F16, §5.3b | opus | – | ☐ |
+| [#24](https://github.com/FqvB/reps/issues/24) | Video library | F15, F16, §5.3b | opus | – | ☑ |
 | [#25](https://github.com/FqvB/reps/issues/25) | Clip detail player | F27, §5.3b | opus | – | ☐ |
 | [#26](https://github.com/FqvB/reps/issues/26) | Save to Photos + share | §5.8, F25 | **fable** | fable-security | ☐ |
 
