@@ -58,7 +58,10 @@ struct RootView: View {
     private func controller() -> SessionController {
         if let sessions { return sessions }
         let made = SessionController(context: modelContext)
-        // TODO(#10): subscribe the speaker here, e.g. made.addEventHandler { speaker.handle($0) }.
+        // The handler keeps the announcer alive with the controller; preparing now warms the voice (§5.7).
+        let announcer = SpeechAnnouncer(speaker: SystemSpeaker())
+        announcer.prepare()
+        made.addEventHandler { announcer.handle($0) }
         // TODO(#22): pass the real ClipFileRemoving once clips exist.
         sessions = made
         return made
