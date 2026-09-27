@@ -14,3 +14,4 @@ One file per decision: `NNNN-short-title.md`, based on `0000-template.md`. Don't
 | [0008](0008-putting-absence-is-a-stroke.md) | Putting: ball gone ≥300 ms = stroke, no occlusion state | Accepted |
 | [0009](0009-project-structure.md) | Hand-written synced-folder Xcode project, ShotDetector as a framework | Accepted |
 | [0010](0010-detector-frame-contract-and-eval.md) | Detectors take VideoFrames via ShotDetecting; eval matching and metrics | Accepted |
+| [0011](0011-ball-auto-locate.md) | Detector auto-locates the ball (newest settled), no tap | Accepted |
