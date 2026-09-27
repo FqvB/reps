@@ -6,7 +6,7 @@ Answer inline, then move the decision to an ADR if it's architectural. Settled q
 
 | # | Question | Blocks | Notes / leaning |
 |---|---|---|---|
-| Q17 | Putting eval footage: record the §7 putting script (50 putts, 10 waggles, 5 pickups) to tune ball-absence thresholds | #16 | Doesn't block #14, which can be built against synthetic frames and range footage. Needed before putting thresholds are final. |
+| Q17 | Short putting clip (~20 putts, phone on the ground face-on) to set the similarity threshold | #16 | Doesn't block #14. With ADR 0008 no waggle/occlusion script is needed. |
 
 ## Resolved
 
@@ -24,7 +24,7 @@ Answer inline, then move the decision to an ADR if it's architectural. Settled q
 | Q10 | Formatter | swift-format | CLAUDE.md |
 | Q11 | Classifier training data | Already done in hitreg-ml: Create ML action classifier `hitreg_ml 1.mlmodel` (swing vs other, 2 s windows @ 30 fps). Practice swings count as swing, and `motion` rows are hard negatives. | ADR 0007 |
 | Q12 | Voice language | English | – |
-| Q14 | Putting approach | Ball absence only (spec §5.5), no pose. Confirmed. | ADR 0002 |
+| Q14 | Putting approach | Phone on the ground, face-on. Ball gone ≥ 300 ms = stroke, no pose, no occlusion state. A pickup counts too (fix with −1). | ADR 0008 |
 | Q15 | Re-tee/pickup ground truth | `motion` rows are the re-tee/pickup events. They must not count, and they're the hard negatives. | ADR 0007 |
 | Q16 | Where the Create ML model lives | Copied into this repo as `ml/models/SwingClassifier_hitreg_ml1.mlmodel` (4 MB). The suffix names its hitreg-ml source version. | ADR 0007 |
 | Q13 | Which Figma frames are current | The Figma file has one page for this project, and all of it is current. | docs/design.md |
