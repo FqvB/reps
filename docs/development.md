@@ -7,7 +7,7 @@ How the project is built, tested and committed.
 - iOS 26 minimum, iPhone only. Bundle ID `com.fqvb.reps`.
 - Signing: free provisioning for now (builds expire after 7 days). The paid Apple Developer Program is pending. Put `DEVELOPMENT_TEAM = …` in `Config/Signing.local.xcconfig` (gitignored).
 - Formatter: swift-format.
-- ML and footage live in the sibling repo `../hitreg-ml` (Python 3.14 + uv, PyTorch, coremltools). It holds the videos, label CSVs, the splits, and the trained Create ML swing classifier. Tests find it via `REPS_ML_DIR`. See ADR 0007.
+- ML tools (labelling, keypoint extraction, data checks, clip cutting) live in [`ml/`](../ml) (Python 3.14 + uv, PyTorch, coremltools). Footage, labels and keypoints are local only and never committed. Tests find them via `REPS_ML_DIR`, which defaults to the local `hitreg-ml` folder. See ADR 0007.
 - Voice is English only.
 
 ## Feature workflow

@@ -23,6 +23,16 @@ Footage/
 ml/.venv/
 ml/data/
 ml/runs/
+ml/export/
+*.m4v
+*.MOV
+*.MP4
+ml/**/*.png
+ml/**/*.jpg
+ml/**/*.jpeg
+ml/**/*.heic
+__pycache__/
+*.pyc
 
 .claude/settings.local.json
 

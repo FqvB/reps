@@ -48,6 +48,7 @@ The design decisions are written up as architecture decision records:
 - [Architecture decision records](docs/adr/), e.g. [ball-gated fusion](docs/adr/0002-ball-gated-fusion.md) and [record-then-cut clips](docs/adr/0003-record-and-cut-clips.md)
 - [Code reference](docs/code-reference.md)
 - [Development guide](docs/development.md): building, testing and conventions
+- [ML tools](ml/README.md): labelling, pose extraction and training-clip pipeline
 
 ## Running it
 

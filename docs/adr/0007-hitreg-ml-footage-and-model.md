@@ -22,3 +22,6 @@ Footage, labels and a trained Create ML classifier already exist in the sibling 
 
 ## Consequences
 One place for all ML data and training. The app repo stays small. The eval depends on a sibling checkout existing locally, which is fine since there's no CI (ADR 0005).
+
+## Update (2026-11-16)
+The hitreg-ml tooling (`tools/`, `pyproject.toml`, `uv.lock`) moved into this repo under `ml/`. Footage, labels, keypoints and the Create ML project still stay out of git; only the code is versioned here.
