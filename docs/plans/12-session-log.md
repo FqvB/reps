@@ -73,7 +73,7 @@ Before each commit, run `xcrun swift-format format --in-place --recursive --para
 2. Apply the three `PlansView.swift` edits (Appendix B).
 3. Build: `xcodebuild build -project Reps.xcodeproj -scheme Reps -destination "$DEST27" -quiet`. It must succeed with no new warnings.
 4. Run the full Unit plan on **both** simulators: `$T -destination "$DEST27"`, then `$T -destination "$DEST265"`. Both must print `** TEST SUCCEEDED **`.
-5. Manual smoke test on the iOS 27 simulator. There are no UI tests, and CLAUDE.md asks only for a build for screens without logic.
+5. Manual smoke test on the iOS 27 simulator. There are no UI tests, and development.md asks only for a build for screens without logic.
    - Plans → **Log** (top left) → "No sessions yet".
    - Back. Start a plan with ≥ 3 blocks, go over target on block 1, skip block 2, leave block 3 short, End → Done. Log → one "September 2026"-style section with one card: plan name, "<weekday>, <month> <day> · <time> · under 1 min", "`n` shots · 3 blocks", a % in ink (not every block complete).
    - Tap the card → the detail: large title plan name, date subtitle, headline % + "`done` of `target` shots" + "Range · face-on", three rows (block 1 in accent with >100 %, skipped "0 / x  0%"), tiles "under 1 min", "0", manual fixes = net +1s. Back.

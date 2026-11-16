@@ -139,7 +139,7 @@ Branch `feat/7-plans-screens` (already checked out). Run everything from the rep
 
 1. Replace the stub with the real `PlanEditorView.swift` and create `BlockEditorSheet.swift` (Appendix B).
 2. Build. Then run the full Unit plan once to make sure nothing regressed: `xcodebuild test -project Reps.xcodeproj -scheme Reps -testPlan Unit -destination "$DEST"` → `Test run with 109 tests in 11 suites passed`, `** TEST SUCCEEDED **`.
-3. Manual smoke test in the simulator (no UI tests, since the table in CLAUDE.md gives screens without flow logic a build only): create a plan with 3 blocks, reorder by long-press drag, swipe-delete one and tap Undo within 5 s, Save; edit it, change a toggle, Cancel → the discard alert; duplicate it and delete it (confirmation). Check against the Figma screenshots.
+3. Manual smoke test in the simulator (no UI tests, since the table in development.md gives screens without flow logic a build only): create a plan with 3 blocks, reorder by long-press drag, swipe-delete one and tap Undo within 5 s, Save; edit it, change a toggle, Cancel → the discard alert; duplicate it and delete it (confirmation). Check against the Figma screenshots.
 4. `git add -A && git commit -m "added plan editor" -m "Refs #7"`
 
 ### Step 5: docs
@@ -162,7 +162,7 @@ No review (the issue has neither review label). Push, then open a PR titled `add
 - `ClubChoicesTests`: bag order, dedupe, blanks, an off-bag current club appended.
 - `PlanLibraryTests` (in-memory store): create with trimmed and ordered blocks, round trip, edit in place (ids kept, renumbered, new block uses the draft id), removed block deleted with its result snapshot intact, **duplicate deep copy** (new ids, order renumbered from gappy orders, flags copied, no sessions, original untouched), delete keeps sessions and `planName`, `lastDone` ignores active sessions and falls back to `startedAt`.
 
-Views: build only (CLAUDE.md: UI without logic). No UI tests. The discard and undo logic that matters is covered in `PlanDraftTests`.
+Views: build only (development.md: UI without logic). No UI tests. The discard and undo logic that matters is covered in `PlanDraftTests`.
 
 ## Placeholders (`// PLACEHOLDER:` in code; the owner supplies real content)
 

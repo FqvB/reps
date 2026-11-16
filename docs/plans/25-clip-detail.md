@@ -35,7 +35,7 @@ Out of scope: share and Save to Photos (#26, buttons present but disabled), temp
 
 ## Security note (review label?)
 
-No new file-path or deletion code: the player opens `ClipStorage.clipURL` (validated in #24) read-only, and delete-from-detail is one id through `LibraryEdits.delete`, the path #24 already flagged for review. **No separate fable-security review needed for #25.** If #24's recommended security look hasn't happened yet, add `LibraryView.commitDetailDelete` to its scope (points: delete runs only after confirm + dismissal, saves before removing files, thumbnails dropped).
+No new file-path or deletion code: the player opens `ClipStorage.clipURL` (validated in #24) read-only, and delete-from-detail is one id through `LibraryEdits.delete`, the path #24 already flagged for review. **No separate security review needed for #25.** If #24's recommended security look hasn't happened yet, add `LibraryView.commitDetailDelete` to its scope (points: delete runs only after confirm + dismissal, saves before removing files, thumbnails dropped).
 
 ## Final layout
 
@@ -93,7 +93,7 @@ Before each commit: `xcrun swift-format format --in-place --recursive --parallel
 
 Suite `Unit`, `RepsTests/ClipPlaybackTests` (11, `@MainActor`, pure): speed cycle, titles and rates; frame duration + 60 fps fallback (0, negative, NaN); step lands on frame middles and moves exactly one frame from a middle (incl. 2.1 s = frame 126 floating-point case); clamps at both ends, no phantom frame at an exact multiple, partial last frame never past the end, zero duration/frame → 0; end detection; fraction/seconds clamp; time title 3 decimals, negative → 0.000; filmstrip slice middles, empty for 0 count/duration; impact mark only when inside the clip, custom/nil offset; snap within 12 pt only, no events/zero duration unchanged; label pill with/without tempo, putting (no angle), down-the-line + rounding.
 
-No new tests for delete/favourite/tags: the player calls #24's `LibraryEdits.setFavourite/addTag/removeTag/delete` unchanged (covered by `LibraryEditsTests`); the rest is view wiring (CLAUDE.md: views build-only). `ClipPlayer` wraps AVPlayer and needs a real clip, so it's exercised once #22 writes clips.
+No new tests for delete/favourite/tags: the player calls #24's `LibraryEdits.setFavourite/addTag/removeTag/delete` unchanged (covered by `LibraryEditsTests`); the rest is view wiring (development.md: views build-only). `ClipPlayer` wraps AVPlayer and needs a real clip, so it's exercised once #22 writes clips.
 
 ## Docs
 

@@ -61,7 +61,7 @@ No pbxproj or test plan changes: synced folders pick up the subfolders (verified
 
 Branch `feat/3-detector-eval-harness` (already checked out). Run everything from the repo root. `DEST='platform=iOS Simulator,name=iPhone 17 Pro,OS=latest'`. After creating files in each step, run `xcrun swift-format lint --strict --recursive --parallel ShotDetector DetectorEvalTests` (must print nothing). Every commit body is `Refs #3`.
 
-Steps 2–6 are TDD (CLAUDE.md): create the **test file first**, run the filtered command and see it fail (compile error: the type doesn't exist yet), then create the implementation file(s), run again and see it pass, then commit both.
+Steps 2–6 are TDD (development.md): create the **test file first**, run the filtered command and see it fail (compile error: the type doesn't exist yet), then create the implementation file(s), run again and see it pass, then commit both.
 
 Shorthand used below:
 
@@ -122,7 +122,7 @@ EVAL='xcodebuild test -project Reps.xcodeproj -scheme Reps -testPlan DetectorEva
 ### Step 8 — docs
 
 1. **docs/code-reference.md**: update the `ShotDetector/ShotEvent.swift` entry and append the entries in **Appendix B**.
-2. **CLAUDE.md** (Testing section): in the code block, after the `# DetectorEval …` command, add:
+2. **development.md** (Testing section): in the code block, after the `# DetectorEval …` command, add:
    ```sh
    # DetectorEval harness logic only (no footage, < 1 s)
    xcodebuild test -project Reps.xcodeproj -scheme Reps -testPlan DetectorEval -destination "$DEST" -only-testing:DetectorEvalTests/CSVTests -only-testing:DetectorEvalTests/EventMatcherTests -only-testing:DetectorEvalTests/EvalMetricsTests
@@ -143,7 +143,7 @@ EVAL='xcodebuild test -project Reps.xcodeproj -scheme Reps -testPlan DetectorEva
 5. **docs/roadmap.md**: #3 status `☐` → `☑` (do this in the final commit before the PR, when the issue is about to close).
 6. Commit: `documented detector eval harness`.
 
-Then push and open the PR (CLAUDE.md): title `added detector eval harness`, body `frame contract, footage decoder, matcher and metrics, oracle baseline` plus `Closes #3`. Review label is `review:opus`: run `opus-reviewer` before the PR.
+Then push and open the PR (development.md): title `added detector eval harness`, body `frame contract, footage decoder, matcher and metrics, oracle baseline` plus `Closes #3`. Review label is `review:logic`: do the logic review before the PR.
 
 ## Tests
 

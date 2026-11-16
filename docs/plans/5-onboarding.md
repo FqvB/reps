@@ -4,7 +4,7 @@ Goal: three first-launch screens (Figma 07 Welcome, 08 Your bag, 09 Camera) that
 
 Spec: F19 (bag set during onboarding, defaults to a common 14), F20 (three screens: welcome, your bag, camera/microphone permissions with default angle), §3.2 ("The microphone is used for exactly one thing: recording audio on the clips"), §5.3c ("a first session is two taps away"), §6 ("Camera or mic permission denied at onboarding: explain what stops working and deep-link to Settings; manual counting still works"). ADR 0009 (hand-written pbxproj, generated Info.plist). Figma file `pMKE8PoWxIEotHas0rmQX1`: [07 Welcome 8:2](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=8-2), [08 Your bag 8:46](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=8-46), [09 Camera 8:134](https://www.figma.com/design/pMKE8PoWxIEotHas0rmQX1?node-id=8-134). No Figma variables; values are literals off the layers.
 
-Branch: `feat/5-onboarding` from `main` **after #6 has merged** (merge order #11 → #6 → #12 → #5). Labels `ui`, `review:fable-security` → `fable-security-reviewer` reviews before the PR. Copy this plan to `docs/plans/5-onboarding.md` in the docs commit.
+Branch: `feat/5-onboarding` from `main` **after #6 has merged** (merge order #11 → #6 → #12 → #5). Labels `ui`, `review:security`: security review before the PR. Copy this plan to `docs/plans/5-onboarding.md` in the docs commit.
 
 **Depends on #6** (`docs/plans/6-settings.md`): `AppSettings` (`Reps/Settings/AppSettings.swift`, keys `settings.*`, `Default`, `angleChoices`, `recordClipAudio`, `defaultCameraAngle`), `SettingsCopy.angleTitle(_:)`, `BagCatalog.defaultBag` (the common 14), `BagLibrary` (`Reps/Bag/BagLibrary.swift`, `all(in:)`), `BagEditorView` (`Reps/UI/Bag/BagEditorView.swift`, chip grid with no chrome of its own; host provides the `ScrollView`). If any of those names differ on `main`, stop and report; don't invent replacements.
 
@@ -22,7 +22,7 @@ How this was checked: every file in Appendix A and B was type-checked together w
 | Default angle | Figma 09 segmented control bound to `@AppStorage(AppSettings.Key.defaultCameraAngle)`; choices `AppSettings.angleChoices`; labels `SettingsCopy.angleTitle` ("Face-on", "Down-the-line"). | Same key and copy as Settings (#6). Deviation: Figma 09 says "Down the line"; Settings' spelling wins so the two screens agree. |
 | **Camera prompt** | "Allow and finish" requests the camera if `notDetermined`, then finishes **whatever the answer**. The Camera row is also tappable while "Not yet". | F20 + Figma 09 put the prompt here with the explanation on screen, which is the "ask in context" the docs want. Denied → row says "Denied", a note explains manual counting still works, tapping the row opens Settings (`UIApplication.openSettingsURLString`); "Finish" still completes. |
 | **Microphone prompt** | Asked on "Allow and finish" only when **all** of: mic `notDetermined`, camera just came back `granted`, `AppSettings().recordClipAudio` is on (#6 default: on). Also on an explicit tap of the Microphone row. Never when the camera is denied/restricted (no clips → no audio to add). **#22 must re-check in context** before its first recording with audio on and ask then if still undetermined; audio-on with mic not granted records video only, never blocks and never silently records. | F20 lists the mic on this screen and Figma 09 has the row with "optional" copy; the Settings toggle gates it so a user who turned audio off is never asked. Restricted is never asked (the request can't succeed). Recorded as Q34 for the owner. |
-| No Photos prompt | Nothing here touches Photos. | #26 (fable path) owns it. |
+| No Photos prompt | Nothing here touches Photos. | #26 (security review path) owns it. |
 | Denied / restricted handling | `PermissionRowAction`: notDetermined → request, denied → openSettings, granted/restricted → nothing. Statuses re-read on `scenePhase == .active` (back from Settings). Unknown future `AVAuthorizationStatus` cases map to `.denied` (fail closed: offer Settings, never assume access). | Spec §6. |
 | Testability | `CapturePermissions` protocol (`state(of:)`, `request(_:) async`) with `DevicePermissions` (AVFoundation) in the app and `FakePermissions` in tests. `OnboardingModel` is `@Observable`, MainActor, has no SwiftUI/UIKit imports, and owns every decision: page, what to ask, what a row tap does, the completion flag. Views only render and forward. | Logic tests never touch TCC; the view is build-only. `DevicePermissions` is the one place that calls `AVCaptureDevice.requestAccess`; #13 and #22 reuse it. |
 | Info.plist strings | `INFOPLIST_KEY_NSCameraUsageDescription` and `INFOPLIST_KEY_NSMicrophoneUsageDescription` added to both app configurations in `project.pbxproj` (generated Info.plist, ADR 0009). | Without them the first `requestAccess` kills the app. Wording says what the data is for and that it stays on the phone. |
@@ -162,7 +162,7 @@ Before each commit: `xcrun swift-format format --in-place --recursive --parallel
 4. `docs/roadmap.md`: #5 ☐ → ☑.
 5. `git add -A && git commit -m "documented onboarding" -m "Refs #5"`
 
-Then the review: run `fable-security-reviewer` on the branch (label `review:fable-security`), fix findings, re-run the suites in step 4.5, push, open a PR titled `added onboarding` with body `welcome, bag seeding, default angle, camera and mic prompts with denied paths` plus `Closes #5`.
+Then the security review on the branch (label `review:security`), fix findings, re-run the suites in step 4.5, push, open a PR titled `added onboarding` with body `welcome, bag seeding, default angle, camera and mic prompts with denied paths` plus `Closes #5`.
 
 ## Tests
 
@@ -171,7 +171,7 @@ Then the review: run `fable-security-reviewer` on the branch (label `review:fabl
 - `RepsTests/OnboardingCopyTests` (Unit, 5): continue title (0 / 1 / 14), finish title, status pills, camera note per state, feature count.
 - `RepsTests/BagSeedingTests` (Unit, 3): seeds 14 in catalog order into an empty store; second call is a no-op and returns false; an existing (hidden) club blocks seeding.
 - `RepsTests/AppSettingsTests` (#6): flag default, round trip, key name.
-- Views (`OnboardingView`, `PageDots`, `RootView` branch): build only + the smoke test (CLAUDE.md test table; no UI test target).
+- Views (`OnboardingView`, `PageDots`, `RootView` branch): build only + the smoke test (development.md test table; no UI test target).
 
 ## Verification
 
@@ -208,7 +208,7 @@ Figma copy used verbatim: welcome title/intro/features, "Get started", "Your bag
 
 TODOs left for other issues, written in code as `TODO(#22)` in `OnboardingModel.asksMicrophoneOnFinish`'s comment: #22 re-checks the mic in context; #13 reuses `DevicePermissions` before starting capture.
 
-## Threat notes (for `fable-security-reviewer`)
+## Threat notes (for the security review)
 
 - **Prompts and strings.** Camera and microphone are the only permissions touched. Both usage strings are set as `INFOPLIST_KEY_*` build settings on the app target (generated Info.plist, ADR 0009) and verified with `plutil` in step 1; they state purpose and that video stays on the phone. No Photos, location, contacts or notifications. Nothing is requested at launch: the first prompt is on the third screen after an on-screen explanation, on a tap ("Allow and finish" or a row). The mic is never requested when the camera is denied/restricted, when Record audio is off, or when it's restricted.
 - **Denial paths.** Denied → row "Denied", explanatory note, tap opens `UIApplication.openSettingsURLString` through SwiftUI's `openURL` (no `UIApplication.shared.open` from a view), statuses refresh on `scenePhase == .active`. Restricted → row "Restricted", note, no action (the OS won't allow it). Onboarding always completes; the app never gates on a permission (spec §6, manual counting). `@unknown default` maps to `.denied` (fail closed). `DevicePermissions.request` re-reads the status instead of trusting the returned `Bool`, so restricted never shows as "Denied by user".

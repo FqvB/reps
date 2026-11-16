@@ -16,7 +16,7 @@ In scope:
 - `RootView` reads the default angle when starting sessions.
 
 Out of scope, with the owning issue:
-- Asking for Photos access and saving anything to Photos → #26 (fable path). The toggle only stores the preference.
+- Asking for Photos access and saving anything to Photos → #26 (security review path). The toggle only stores the preference.
 - Recording audio, applying clip quality, and asking for mic/camera permission → #22 / #13 / #5.
 - Speaking (and so reading the voice toggles) → #10. Tempo announcements → #27.
 - Storage "Manage" screen, deleting clips → #23.
@@ -589,7 +589,7 @@ struct SettingsView: View {
                     .menuStyle(.button)
                     .buttonStyle(.plain)
                     SettingsDivider()
-                    // TODO(#26): honour this and ask for Photos access when it's turned on (fable-security path).
+                    // TODO(#26): honour this and ask for Photos access when it's turned on (security review path).
                     SettingsToggleRow(
                         title: "Save clips to Photos", subtitle: "Off keeps clips inside Reps only",
                         isOn: $saveClipsToPhotos)
@@ -921,7 +921,7 @@ Cases:
 - `moveReordersInBagAndPutsHiddenLast`: seed Driver, 3 wood, 7 iron, Putter; hide 3 wood; `move(fromOffsets: [2], toOffset: 0)` (Putter, in-bag index 2) → names [Putter, Driver, 7 iron, 3 wood], order [0,1,2,3].
 - `moveIgnoresOutOfRangeOffsets`: `move(fromOffsets: [9], toOffset: 0)` → unchanged.
 
-Views, alerts, menus and the reorder sheet are build-only (UI, per the CLAUDE.md test table).
+Views, alerts, menus and the reorder sheet are build-only (UI, per the development.md test table).
 
 ## Verification
 

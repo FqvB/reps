@@ -6,7 +6,7 @@ Spec: §5.1, §10 (export without changes), F1, F2, F8, F14, F16, F18, F19, F21,
 
 Every file in **Appendix A** was built and tested by the planner in a scratch copy of the repo with Xcode 27.0 (27A5252f) on the iPhone 17 Pro simulator: full `Unit` plan passed (30 tests in 4 suites), zero compiler warnings, `xcrun swift-format lint --strict -r Reps RepsTests` clean. The Unit tests are hosted in the app, so each run also opened the **on-disk** store through the new migration plan (and upgraded the simulator's existing empty-schema store from #1 without error). **Copy the file contents exactly.**
 
-Out of scope (later issues): writing the export to a file, the share sheet or any UI that sends data off the device (needs the Fable security path; no issue yet), the default 14-club bag and seeding (#5), plan editing UI (#7), session creation, +1/−1 and block advance logic (#8), clip files and their deletion (#22), library queries and bulk retag (#24).
+Out of scope (later issues): writing the export to a file, the share sheet or any UI that sends data off the device (needs the security review path; no issue yet), the default 14-club bag and seeding (#5), plan editing UI (#7), session creation, +1/−1 and block advance logic (#8), clip files and their deletion (#22), library queries and bulk retag (#24).
 
 ## Decisions
 
@@ -31,7 +31,7 @@ Out of scope (later issues): writing the export to a file, the share sheet or an
 | Export shape | `ExportDocument { formatVersion: 1, exportedAt, bag: [ExportClub], plans: [ExportPlan], sessions: [ExportSession] }`; sessions nest `blocks: [ExportBlockResult]`, which nest `shots: [ExportShot]`. Swift property names are the JSON keys (camelCase, no key strategy). Relationships to other top-level items are ids (`planId`, `planBlockId`). Raw stored values only, no derived fields (no `done`, no completion %): a consumer recomputes with §5.1's formula. `nil` optionals are omitted (synthesized `encodeIfPresent`). | §10: "export as JSON without changes". Raw data can't disagree with a later math change. Key names are guarded by tests that assert exact key sets. |
 | Export content | All bag clubs (by `sortOrder`), all plans (by `createdAt`, blocks by `order`), **finished sessions only** (by `startedAt`, results by `order`, shots by `timestamp`). | Active sessions are still being written (ADR 0006); the log also shows only finished ones. |
 | Encoding | `ExportCoding.encode(_:) throws -> Data`: `.prettyPrinted, .sortedKeys, .withoutEscapingSlashes`, dates as ISO 8601 UTC with milliseconds (`2026-09-21T14:13:20.250Z`) via `Date.ISO8601FormatStyle(includingFractionalSeconds: true)` in a `.custom` strategy. `ExportCoding.decode(_:)` is the exact inverse (used by the round-trip test, and by a future import). | Deterministic bytes (verified: encoding twice gives equal `Data`). Plain `.iso8601` drops sub-second precision; two manual taps can land in the same second. |
-| Tests | Swift Testing, `Unit` plan, `RepsTests`. Pure math in a non-isolated suite; SwiftData suites are `@MainActor` and use `RepsStore.makeContainer(inMemory: true)`. **A suite must hold the `ModelContainer` in a stored property**, not just its `mainContext`: the context doesn't retain the container and the test process crashes (hit while prototyping). | TDD per CLAUDE.md for completion math and export. |
+| Tests | Swift Testing, `Unit` plan, `RepsTests`. Pure math in a non-isolated suite; SwiftData suites are `@MainActor` and use `RepsStore.makeContainer(inMemory: true)`. **A suite must hold the `ModelContainer` in a stored property**, not just its `mainContext`: the context doesn't retain the container and the test process crashes (hit while prototyping). | TDD per development.md for completion math and export. |
 
 ## Final layout
 
@@ -164,7 +164,7 @@ Branch `feat/4-swiftdata-model-export` (already checked out). Run everything fro
 4. `docs/roadmap.md`: #4 status ☐ → ☑.
 5. `git add -A && git commit -m "documented data model and export" -m "Refs #4"`
 
-Then review (`review:opus`), fix findings, push, PR titled `added swiftdata model and json export`, body one line + `Closes #4`.
+Then review (`review:logic`), fix findings, push, PR titled `added swiftdata model and json export`, body one line + `Closes #4`.
 
 ## Tests
 
@@ -191,7 +191,7 @@ If a run prints `Restarting after unexpected exit, crash` and then hangs, a suit
 
 ## Risks and unresolved
 
-- **Data leaving the device.** Nothing in the spec puts file writing, sharing or upload in #4, and this plan has none: `ExportCoding.encode` returns `Data`. Whoever adds a "Export JSON" button/share sheet must go through the Fable planner + `fable-security` review (the export contains all practice history, tags as free text, and clip names). There is no issue for it yet; spec §10 only asks that the model *can* be exported.
+- **Data leaving the device.** Nothing in the spec puts file writing, sharing or upload in #4, and this plan has none: `ExportCoding.encode` returns `Data`. Whoever adds a "Export JSON" button/share sheet must go through a security-focused plan and the `review:security` review (the export contains all practice history, tags as free text, and clip names). There is no issue for it yet; spec §10 only asks that the model *can* be exported.
 - **Session completion lets surplus cover a shortfall** (45/30 + 15/30 = 100 %). This is the spec's literal "total done over total target". Q22 asks whether per-block contributions should be capped at 100 % for the session number; changing it later is a one-line change in `Completion.session` plus tests.
 - **−1 semantics are #8's call** (Q21): does −1 delete the latest `ShotRecord` or only decrement `repsManualAdjust`? The model supports both. Likewise #8 must create one `BlockResult` per plan block at session start, or skipped blocks drop out of the session completion.
 - **Deleting a session or shot leaves clip files on disk.** Cascade deletes only SwiftData rows. #22/#24 must delete `Documents/clips/<sessionId>/` (or the shot's file) alongside the row. Deleting a `ShotRecord` also doesn't adjust `repsCounted`; #24 decides.

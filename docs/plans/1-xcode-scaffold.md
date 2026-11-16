@@ -12,13 +12,13 @@ Every file below was built and tested by the planner in a scratch copy with Xcod
 |---|---|---|
 | Project generation | Hand-authored `project.pbxproj`, `objectVersion = 77`, file-system synchronized root groups. No xcodegen/tuist. | Synced folders mean new files never touch the pbxproj, so no generator tool (brew is installed, but xcodegen adds a dependency and a regenerate step for no gain). |
 | Module boundary | `ShotDetector` is a separate iOS **framework target** (folder `ShotDetector/`), embedded in the app. | Makes the spec §4 rule a real module boundary. DetectorEval links only the framework and runs without launching the app. |
-| Targets | `Reps` (app), `ShotDetector` (framework), `RepsTests` (unit, hosted in the app), `DetectorEvalTests` (unit-test bundle, no host, links `ShotDetector`). | Matches CLAUDE.md test plans `Unit` / `DetectorEval`. |
+| Targets | `Reps` (app), `ShotDetector` (framework), `RepsTests` (unit, hosted in the app), `DetectorEvalTests` (unit-test bundle, no host, links `ShotDetector`). | Matches development.md test plans `Unit` / `DetectorEval`. |
 | UI tests | **Not in this issue.** No `UI` plan or UI test target. | Nothing to UI-test yet. The first issue that needs one (#11, accident-proofing) adds a `RepsUITests` target and `TestPlans/UI.xctestplan`; that requires a pbxproj edit, noted in ADR 0009. |
 | Test framework | Swift Testing (`import Testing`, `@Test`, `#expect`, `#require`, `.enabled(if:)`) for both targets. | Current Apple default; `.enabled(if:)` gives a clean skip for missing footage. |
 | SwiftData | `RepsStore.makeContainer(inMemory:)` over an **empty** schema; the app attaches it with `.modelContainer(_:)`. | #4 owns the `@Model` types; it only has to fill `RepsStore.models`. An empty schema was verified to open both on disk (app launch) and in memory. |
 | Swift settings | Swift 6 language mode everywhere, `SWIFT_APPROACHABLE_CONCURRENCY = YES`. App target only: `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`. `ShotDetector` stays nonisolated by default (it will run off the main thread). | Xcode 26+ app defaults; detector code must not be main-actor bound. |
 | Signing | `CODE_SIGN_STYLE = Automatic`, no `DEVELOPMENT_TEAM` in the pbxproj. The project-level configs use `Config/Signing.xcconfig`, which does `#include? "Signing.local.xcconfig"` (gitignored) where the owner puts `DEVELOPMENT_TEAM = <id>`. | Team ID never gets committed; simulator builds need no team. |
-| Platform | `IPHONEOS_DEPLOYMENT_TARGET = 26.0`, `TARGETED_DEVICE_FAMILY = 1`, `SUPPORTS_MACCATALYST/…DESIGNED_FOR_IPHONE_IPAD/XR = NO`. | Owner comment, CLAUDE.md. |
+| Platform | `IPHONEOS_DEPLOYMENT_TARGET = 26.0`, `TARGETED_DEVICE_FAMILY = 1`, `SUPPORTS_MACCATALYST/…DESIGNED_FOR_IPHONE_IPAD/XR = NO`. | Owner comment, development.md. |
 | Bundle IDs | `com.fqvb.reps`, `com.fqvb.reps.ShotDetector`, `com.fqvb.reps.tests`, `com.fqvb.reps.detectoreval`. | |
 | Footage location | `DetectorEvalTests/MLData.swift`: `REPS_ML_DIR` env var if set, else the sibling checkout derived from `#filePath` (`<repo>/../hitreg-ml`). If `data/manifest.csv` isn't there, `MLData.root` is `nil` and suites skip. | ADR 0007's default. `~` inside the simulator is the sim container, so `#filePath` is used instead of the home dir. Shell env vars reach the simulator test runner only with the `TEST_RUNNER_` prefix (xcodebuild man page). |
 | Simulator | `platform=iOS Simulator,name=iPhone 17 Pro,OS=latest` (exists on iOS 26.5 and 27.0 here; `OS=latest` removes the ambiguity). | |
@@ -105,7 +105,7 @@ Work on the existing branch `feat/1-xcode-scaffold`. Run all commands from the r
 
 ### Step 3 — docs
 
-1. **CLAUDE.md**, section "Testing": replace the line
+1. **development.md**, section "Testing": replace the line
    `- Filter with \`-only-testing:<Target>/<Suite>\` instead of running everything. Exact commands go here once #1 (scaffold) lands.`
    with the block in **Appendix C**.
 2. **docs/code-reference.md**: replace the line `_No code yet. The first entries land with #1 (scaffold)._` with the entries in **Appendix D**.
@@ -114,13 +114,13 @@ Work on the existing branch `feat/1-xcode-scaffold`. Run all commands from the r
 4. **docs/roadmap.md**: in the Phase 0 table, change the #1 row status `☐` to `☑`.
 5. Commit: `git add -A && git commit -m "documented project scaffold" -m "Refs #1"`
 
-Then push and open the PR (per CLAUDE.md): title `added xcode project scaffold`, body one line (`xcode project, ShotDetector framework, Unit and DetectorEval plans, swift-format`) plus `Closes #1`. No attribution lines.
+Then push and open the PR (per development.md): title `added xcode project scaffold`, body one line (`xcode project, ShotDetector framework, Unit and DetectorEval plans, swift-format`) plus `Closes #1`. No attribution lines.
 
 ## Tests
 
 - `Unit` → `RepsTests/RepsStoreTests.inMemoryContainerOpens`: the SwiftData container opens with the current schema in memory. Also exercises the app host launching with the on-disk store.
 - `DetectorEval` → `DetectorEvalTests/MLDataTests.testSplitIsListed`: the footage locator finds hitreg-ml and `data/splits.json` has a non-empty `test` list; skips cleanly when the data isn't found.
-- Nothing else. The root view and `ShotEvent` have no behaviour worth testing (CLAUDE.md).
+- Nothing else. The root view and `ShotEvent` have no behaviour worth testing (development.md).
 
 ## Risks / unresolved
 
@@ -1237,7 +1237,7 @@ struct MLDataTests {
 }
 ```
 
-## Appendix C — CLAUDE.md Testing commands
+## Appendix C — development.md Testing commands
 
 Replace the "Filter with…" line with:
 

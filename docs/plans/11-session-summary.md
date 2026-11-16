@@ -122,7 +122,7 @@ No review (label `ui` only). Push, open a PR titled `added session summary` with
 
 - `RepsTests/CompletionTests` (Unit): Q22 cap (45/30 + 15/30 = 0.75, block still 1.5), surplus doesn't cover a skipped block (0.5), session never exceeds 1; the rest unchanged.
 - `RepsTests/SummaryDisplayTests` (Unit, 8 tests): Figma 12 data (subtitle, capped 100 %, caption, rows, surplus bar split, 150 %/117 %, stats incl. avg tempo and net manual fixes), short blocks (45 %, "2 blocks short", partial and empty bars, "under 1 min"), percent never 100 before target, putting (note titles, "putts", blank note falls back), free session (bare counts, tag titles, unused block hidden, "–" tempo, "1 h 5 min"), empty free session, duration, tempo formatting.
-- Views: build only + smoke test (no UI test target exists; CLAUDE.md: no tests for layout).
+- Views: build only + smoke test (no UI test target exists; development.md: no tests for layout).
 
 ## Placeholders (`// PLACEHOLDER:` in code)
 

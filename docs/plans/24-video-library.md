@@ -50,7 +50,7 @@ Spiked in a scratch copy of the app with an on-disk SQLite store (`RepsStore.mak
 
 ## Security note (flag for a look)
 
-The issue has no review label, but this is the first UI that **deletes user clips in bulk** and the first code that **turns stored names into file URLs**. Recommend running `fable-security-reviewer` (or `/security-review`) on step 2 + the delete path in `LibraryView` before merging. Points to check:
+The issue has no review label, but this is the first UI that **deletes user clips in bulk** and the first code that **turns stored names into file URLs**. Recommend a security review on step 2 + the delete path in `LibraryView` before merging. Points to check:
 1. `ClipStorage.clipURL` validation (tests cover `..`, `/`, `\`, `:`, newline, hidden, wrong extension). The real `ClipFileRemoving` (#22) must apply the same check before deleting; note added as `TODO(#22)` in the plan's #22 hand-off (Risks).
 2. Delete order: rows saved first, files after; a failed save removes no files.
 3. Thumbnails of deleted clips are removed from `Caches/thumbnails` (they'd otherwise outlive the clip). Thumbnails are written with `.atomic` only, same protection class as the clips (default); #22 decides file protection for both.
@@ -126,7 +126,7 @@ Before each commit: `xcrun swift-format format --in-place --recursive --parallel
 
 ## Tests
 
-Suite `Unit`, filtered as above; views are build-only (CLAUDE.md table).
+Suite `Unit`, filtered as above; views are build-only (development.md table).
 
 - `LibraryDisplayTests` (14): newest-first + id tiebreak; tag AND (and "fade" ≠ "fader"); every chip ANDed (club, angle, month, session, tags, ★); search words ANDed across fields incl. month/weekday/angle; hidden (pending delete) left out; club options (bag order then alphabetical); tag options (use count, then name); month/session options newest first; free-session name; month title with/without year; tile copy (title, tempo "3.1", tag line, counts, tag chip "fade +1", undo message); tile dates ("Today 8:00 AM", "Mon 6:00 PM", "Sep 9", "Nov 20, 2025" with U+202F before AM/PM, en_US, UTC); favourite target.
 - `LibraryEditsTests` (7, in-memory store): `LibraryClip` copies session id/title/angle and is nil without a clip; set club + undo (and blank club is a no-op); add/remove tag + undo in either order; favourite + undo; restore skips deleted shots; delete removes rows (incl. from `block.shots`), ignores unknown ids, reports deleted ids, removes files only for shots with a clip, never calls `removeClips`; delete leaves `repsCounted` alone.
