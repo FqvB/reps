@@ -7,7 +7,7 @@ How the project is built, tested and committed.
 - iOS 26 minimum, iPhone only. Bundle ID `com.fqvb.reps`.
 - Signing: free provisioning for now (builds expire after 7 days). The paid Apple Developer Program is pending. Put `DEVELOPMENT_TEAM = …` in `Config/Signing.local.xcconfig` (gitignored).
 - Formatter: swift-format.
-- ML tools (labelling, keypoint extraction, data checks, clip cutting) live in [`ml/`](../ml) (Python 3.14 + uv, PyTorch, coremltools). Footage, labels and keypoints are local only and never committed. Tests find them via `REPS_ML_DIR`, which defaults to the local `hitreg-ml` folder. See ADR 0007.
+- ML tools (labelling, keypoint extraction, data checks, clip cutting) live in [`ml/`](../ml) (Python 3.14 + uv, PyTorch, coremltools). Footage, labels and keypoints are local only and never committed. Tests find them in `ml/data/`, or wherever `REPS_ML_DIR` points. See ADR 0007.
 - Voice is English only.
 
 ## Feature workflow
@@ -39,7 +39,7 @@ DEST='platform=iOS Simulator,name=iPhone 17 Pro,OS=latest'
 xcodebuild build -project Reps.xcodeproj -scheme Reps -destination "$DEST" -quiet
 # Unit, filtered to a suite
 xcodebuild test -project Reps.xcodeproj -scheme Reps -testPlan Unit -destination "$DEST" -only-testing:RepsTests/RepsStoreTests
-# DetectorEval (footage from ../hitreg-ml; override with TEST_RUNNER_REPS_ML_DIR=/path, skips if not found)
+# DetectorEval (footage from ml/data; override with TEST_RUNNER_REPS_ML_DIR=/path, skips if not found)
 xcodebuild test -project Reps.xcodeproj -scheme Reps -testPlan DetectorEval -destination "$DEST"
 # DetectorEval harness logic only (no footage, < 1 s)
 xcodebuild test -project Reps.xcodeproj -scheme Reps -testPlan DetectorEval -destination "$DEST" -only-testing:DetectorEvalTests/CSVTests -only-testing:DetectorEvalTests/EventMatcherTests -only-testing:DetectorEvalTests/EvalMetricsTests
