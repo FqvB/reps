@@ -28,3 +28,7 @@ ml/runs/
 
 # Local signing (DEVELOPMENT_TEAM)
 Config/Signing.local.xcconfig
+
+# Local AI assistant config
+.claude/
+CLAUDE.md
