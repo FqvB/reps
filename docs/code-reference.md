@@ -485,7 +485,7 @@ Finds round things in a luma image (ADR 0017); pure, stateless, buffer pixels wi
 ## ShotDetector/PatchMatcher.swift
 NCC presence check for a locked ball (spec §5.2, ADR 0017).
 - `PatchMatcher(reference:centerX:centerY:halfSize:)`: stores the window `(2*halfSize+1)²`; nil if it doesn't fit in the image
-- `similarity(in:maxShift:step:) -> Double`: best NCC over offsets in `-maxShift...maxShift` (windows leaving the image are skipped; 0 if none fit)
+- `similarity(in:maxShift:step:) -> Double`: best NCC over offsets that are multiples of `step` within ±`maxShift` (windows leaving the image are skipped; 0 if none fit)
 - `PatchMatcher.ncc(_:_:) -> Double`: normalised cross-correlation of two equal-size pixel arrays; 0 for a flat patch
 
 ## ShotDetector/BallPresenceDetector.swift
@@ -513,7 +513,7 @@ Finds discs of radius 6-28 (also against a lighter band and two at once); reject
 NCC is 1 for identical, -1 for inverted, 0 for flat; nil when the window leaves the image; a shifted disc still matches, a removed one doesn't.
 
 ## RepsTests/BallPresenceDetectorTests.swift
-Synthetic frames: lock after 1 s, one event after 0.3 s absence at the exit time, short dropout ignored, re-lock and count again, static clutter never locks, old tracks at lock become clutter, a moving disc doesn't lock, size change and long gap reset, search region, pixel-buffer frames.
+Synthetic frames: lock after 1 s, one event after 0.3 s absence at the exit time, short dropout ignored, re-lock and count again, static clutter never locks, old tracks at lock become clutter, a moving disc doesn't lock, size change and long gap reset, search region (including empty or off-frame regions), a second ball at the same spot re-locks and counts, alternating radii at one spot don't block the next ball, pixel-buffer frames.
 
 ## RepsTests/CameraSessionTests.swift
 - `FakeCamera`: `CameraRunning` that counts starts and stops

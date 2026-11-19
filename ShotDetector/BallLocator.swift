@@ -37,6 +37,7 @@ public struct BallLocator: Sendable {
         let height = image.height
         let minR = config.minRadius
         let maxR = config.maxRadius
+        precondition(config.edgeThreshold > 0 && maxR >= minR)
         guard width >= 3, height >= 3, minR >= 1 else { return [] }
 
         let smooth = Self.boxMean(image)
@@ -69,17 +70,25 @@ public struct BallLocator: Sendable {
         // Both signs, because the ball can be darker than the background on its shaded side.
         var acc = [Int32](repeating: 0, count: width * height)
         acc.withUnsafeMutableBufferPointer { acc in
-            for e in 0..<edgeX.count {
-                let fx = Float(edgeX[e])
-                let fy = Float(edgeY[e])
-                let ux = edgeUX[e]
-                let uy = edgeUY[e]
-                for r in minR...maxR {
-                    let fr = Float(r)
-                    for sign: Float in [1, -1] {
-                        let cx = Int((fx + sign * fr * ux).rounded())
-                        let cy = Int((fy + sign * fr * uy).rounded())
-                        if cx >= 0, cx < width, cy >= 0, cy < height { acc[cy * width + cx] += 1 }
+            edgeX.withUnsafeBufferPointer { edgeX in
+                edgeY.withUnsafeBufferPointer { edgeY in
+                    edgeUX.withUnsafeBufferPointer { edgeUX in
+                        edgeUY.withUnsafeBufferPointer { edgeUY in
+                            for e in 0..<edgeX.count {
+                                let fx = Float(edgeX[e])
+                                let fy = Float(edgeY[e])
+                                for r in minR...maxR {
+                                    let ox = Float(r) * edgeUX[e]
+                                    let oy = Float(r) * edgeUY[e]
+                                    let ax = Int((fx + ox).rounded())
+                                    let ay = Int((fy + oy).rounded())
+                                    if ax >= 0, ax < width, ay >= 0, ay < height { acc[ay * width + ax] += 1 }
+                                    let bx = Int((fx - ox).rounded())
+                                    let by = Int((fy - oy).rounded())
+                                    if bx >= 0, bx < width, by >= 0, by < height { acc[by * width + bx] += 1 }
+                                }
+                            }
+                        }
                     }
                 }
             }

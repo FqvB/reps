@@ -84,10 +84,12 @@ public struct BallPresenceDetector: ShotDetecting, Sendable {
     private mutating func search(_ image: LumaImage, time: Double) {
         let (width, height) = (image.width, image.height)
         func clamp(_ value: Int, _ limit: Int) -> Int { min(max(value, 0), limit) }
-        let x0 = clamp(Int((searchRegion.minX * Double(width)).rounded(.down)), width)
-        let x1 = clamp(Int((searchRegion.maxX * Double(width)).rounded(.up)), width)
-        let y0 = clamp(Int((searchRegion.minY * Double(height)).rounded(.down)), height)
-        let y1 = clamp(Int((searchRegion.maxY * Double(height)).rounded(.up)), height)
+        let region = searchRegion.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
+        guard !region.isNull, !region.isEmpty else { return }
+        let x0 = clamp(Int((region.minX * Double(width)).rounded(.down)), width)
+        let x1 = clamp(Int((region.maxX * Double(width)).rounded(.up)), width)
+        let y0 = clamp(Int((region.minY * Double(height)).rounded(.down)), height)
+        let y1 = clamp(Int((region.maxY * Double(height)).rounded(.up)), height)
         guard x1 - x0 >= 3, y1 - y0 >= 3 else { return }
 
         var found = BallLocator(config: config.locator)
@@ -148,7 +150,9 @@ public struct BallPresenceDetector: ShotDetecting, Sendable {
 
         let locked = tracks[best.index]
         for (index, track) in tracks.enumerated()
-        where index != best.index && time - track.firstSeen >= config.clutterAge - 0.001 {
+        where index != best.index && time - track.firstSeen >= config.clutterAge - 0.001
+            && hypot(track.x - locked.x, track.y - locked.y) > locked.radius
+        {
             ignored.append(
                 BallCandidate(x: track.x, y: track.y, radius: track.radius, coverage: track.coverage))
         }

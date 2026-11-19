@@ -151,6 +151,39 @@ struct BallPresenceDetectorTests {
         #expect(near(whole.ball, disc))
     }
 
+    @Test func secondBallAtTheSameSpotRelocksAndCounts() {
+        var detector = BallPresenceDetector()
+        var events = run(&detector, 0..<45) { $0 < 30 ? [discA] : [] }
+        events += run(&detector, 45..<61) { _ in [discA] }
+        #expect(near(detector.ball, discA))
+        events += run(&detector, 61..<90) { $0 < 75 ? [discA] : [] }
+        #expect(events.flatMap(\.events).map(\.time) == [30.0 / 15, 75.0 / 15])
+    }
+
+    // Two radius estimates of one ball must not make its own spot an ignored one.
+    @Test func alternatingRadiiAtOneSpotDoNotBlockTheNextBall() {
+        let big: Disc = (100, 80, 24, 220)
+        var detector = BallPresenceDetector()
+        var events = run(&detector, 0..<29) { $0 % 2 == 0 ? [discA] : [big] }
+        #expect(detector.ball != nil)
+        events += run(&detector, 29..<45) { _ in [] }
+        #expect(events.count == 1)
+        #expect(detector.ball == nil)
+        _ = run(&detector, 45..<61) { _ in [discA] }
+        #expect(near(detector.ball, discA))
+    }
+
+    @Test func emptySearchRegionsDoNotCrash() {
+        for region in [
+            CGRect.null, CGRect(x: 2, y: 2, width: 1, height: 1), CGRect(x: 0.5, y: 0.5, width: 0, height: 0),
+        ] {
+            var detector = BallPresenceDetector()
+            detector.searchRegion = region
+            _ = run(&detector, 0..<3) { _ in [discA] }
+            #expect(detector.ball == nil)
+        }
+    }
+
     @Test func pixelBufferFramesWork() throws {
         var detector = BallPresenceDetector()
         for i in 0..<20 {

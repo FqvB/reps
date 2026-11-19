@@ -19,6 +19,7 @@ public struct PatchMatcher: Sendable {
     }
 
     public func similarity(in image: LumaImage, maxShift: Int, step: Int = 2) -> Double {
+        precondition(step > 0)
         let n = maxShift / step
         var best: Double?
         for l in -n...n {
