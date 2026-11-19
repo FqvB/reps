@@ -20,3 +20,4 @@ One file per decision: `NNNN-short-title.md`, based on `0000-template.md`. Don't
 | [0014](0014-capture-permissions.md) | Capture permissions: ask in context, never block | Accepted |
 | [0015](0015-voice-output.md) | Voice output: own queue, newest count wins, duck while speaking | Accepted |
 | [0016](0016-camera-pipeline-fan-out.md) | Camera pipeline: one data output, sensor-native frames, upright detector copies | Accepted |
+| [0017](0017-ball-locator-and-presence.md) | Ball locator: gradient circle vote, first-still lock with clutter memory; presence: ball-sized NCC | Accepted |

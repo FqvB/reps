@@ -470,6 +470,30 @@ What detectors are fed.
 - `DetectorInput`: the frame contract for the camera pipeline and the eval harness: `frameRate` 15, `shortSide` 480, `pixelFormat` 420f
 - `DetectorInput.scaledSize(width:height:shortSide:)`: even size with the short side at `shortSide`; nil if already that small
 
+## ShotDetector/LumaImage.swift
+Luma plane copied without row padding; what the locator and matcher read (ADR 0017).
+- `LumaImage(width:height:pixels:)`, `LumaImage(width:height:fill:)`: row-major `[UInt8]`; subscript `[x, y]`
+- `LumaImage(pixelBuffer:)`: plane 0 of a planar buffer; nil if not planar
+- `cropped(x:y:width:height:)`: copy of an in-bounds rect
+
+## ShotDetector/BallLocator.swift
+Finds round things in a luma image (ADR 0017); pure, stateless, buffer pixels with a top-left origin.
+- `BallCandidate(x:y:radius:coverage:)`: centre and radius in px; `coverage` is the share of 16 sectors with a radial edge on the ring
+- `BallLocator.Config`: `minRadius` 6, `maxRadius` 30, `edgeThreshold`, `radialCosine` 0.95, `maxPeaks` 24, `minCoverage` 0.75 (0.8 scored recall 0.55 on the putting clip)
+- `BallLocator(config:)`, `candidates(in:) -> [BallCandidate]`: Sobel edges on a 3×3 mean, gradient-direction circle vote, then an exact-ring coverage check per peak; squares, straight edges and flat areas give nothing
+
+## ShotDetector/PatchMatcher.swift
+NCC presence check for a locked ball (spec §5.2, ADR 0017).
+- `PatchMatcher(reference:centerX:centerY:halfSize:)`: stores the window `(2*halfSize+1)²`; nil if it doesn't fit in the image
+- `similarity(in:maxShift:step:) -> Double`: best NCC over offsets that are multiples of `step` within ±`maxShift` (windows leaving the image are skipped; 0 if none fit)
+- `PatchMatcher.ncc(_:_:) -> Double`: normalised cross-correlation of two equal-size pixel arrays; 0 for a flat patch
+
+## ShotDetector/BallPresenceDetector.swift
+Putting detector (spec §5.2/§5.5, ADRs 0008, 0011, 0017): finds the ball, locks, fires one `ShotEvent` when it's gone.
+- `BallPresenceDetector.Config`: locator config, `lockDelay` 1 s, `stillTolerance`, `radiusTolerance`, `trackMemory` 0.5 s, `clutterAge` 0.5 s, `patchScale` 1, `maxShift` 0.25, `presentThreshold` 0.75 (NCC), `absentHold` 0.3 s, `maxFrameGap` 1 s
+- `BallPresenceDetector(config:)`: `searchRegion` (normalised, top-left origin, default whole frame; only used while searching), `ball` (nil while searching), `similarity` (last NCC, nil while searching)
+- `process(_ frame: VideoFrame)`, `process(_ image: LumaImage, time:)`: searching locks on the first round track still for `lockDelay` (older static tracks become ignored spots); locked, NCC below threshold for `absentHold` emits one event at the exit time and searches again. A frame gap over `maxFrameGap` drops the lock, a size change resets everything
+
 ## RepsTests/FrameSamplerTests.swift
 60 fps takes every 4th frame, 30 and 29.97 fps every 2nd, a dropped due frame is replaced by the next, a longer interval applies at once, a pause restarts without a burst.
 
@@ -478,6 +502,18 @@ What detectors are fed.
 
 ## RepsTests/FrameScalerTests.swift
 `quarterTurns` snap and wrap, output sizes and 420f for 0-3 turns, turns are clockwise, small frames are copied.
+
+## RepsTests/LumaImageTests.swift
+Luma copy drops row padding, non-planar buffer is nil, crop copies the rect.
+
+## RepsTests/BallLocatorTests.swift
+Finds discs of radius 6-28 (also against a lighter band and two at once); rejects squares, a straight edge, a flat image, and discs outside the radius range.
+
+## RepsTests/PatchMatcherTests.swift
+NCC is 1 for identical, -1 for inverted, 0 for flat; nil when the window leaves the image; a shifted disc still matches, a removed one doesn't.
+
+## RepsTests/BallPresenceDetectorTests.swift
+Synthetic frames: lock after 1 s, one event after 0.3 s absence at the exit time, short dropout ignored, re-lock and count again, static clutter never locks, old tracks at lock become clutter, a moving disc doesn't lock, size change and long gap reset, search region (including empty or off-frame regions), a second ball at the same spot re-locks and counts, alternating radii at one spot don't block the next ball, pixel-buffer frames.
 
 ## RepsTests/CameraSessionTests.swift
 - `FakeCamera`: `CameraRunning` that counts starts and stops
@@ -632,3 +668,6 @@ Pure harness logic, no footage.
 
 ## DetectorEvalTests/OracleEvalTests.swift
 - `rangeTestSplit`, `putting`: the oracle scores recall 1, precision 1 and publishes `oracle-range` / `oracle-putting` reports
+
+## DetectorEvalTests/BallPresenceEvalTests.swift
+- `putting`: `BallPresenceDetector` on the putting clip, publishes `ball-presence-putting`; asserts floors recall >= 0.7, precision >= 0.8 (#21 sets the real gates). No range suite: that needs the feet region (#19)
