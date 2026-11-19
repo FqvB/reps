@@ -19,4 +19,12 @@ public enum DetectorInput {
     public static let frameRate: Double = 15
     public static let shortSide = 480
     public static let pixelFormat: OSType = kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+
+    // Even dimensions with the short side at shortSide; nil if the image is already that small.
+    public static func scaledSize(width: Int, height: Int, shortSide: Int = shortSide) -> (width: Int, height: Int)? {
+        let scale = Double(shortSide) / Double(min(width, height))
+        guard scale < 1 else { return nil }
+        func even(_ value: Int) -> Int { Int((Double(value) * scale / 2).rounded()) * 2 }
+        return (even(width), even(height))
+    }
 }

@@ -24,7 +24,10 @@ struct VideoFrameReader {
         let orientation = Self.orientation(from: transform)
 
         var settings: [String: Any] = [kCVPixelBufferPixelFormatTypeKey as String: DetectorInput.pixelFormat]
-        if let shortSide, let size = Self.scaledSize(naturalSize, shortSide: shortSide) {
+        if let shortSide,
+            let size = DetectorInput.scaledSize(
+                width: Int(naturalSize.width), height: Int(naturalSize.height), shortSide: shortSide)
+        {
             settings[kCVPixelBufferWidthKey as String] = size.width
             settings[kCVPixelBufferHeightKey as String] = size.height
         }
@@ -35,17 +38,14 @@ struct VideoFrameReader {
         guard reader.startReading() else { throw ReadError.cannotRead(url, reader.error) }
 
         var times: [Double] = []
-        var nextDue = -Double.infinity
-        let step = frameRate.map { 1 / $0 } ?? 0
+        var sampler = frameRate.map { FrameSampler(frameRate: $0) }
         while let sample = output.copyNextSampleBuffer() {
             let time = sample.presentationTimeStamp.seconds
             // Only samples with an image buffer count as decoded frames, so an empty sample
             // can't shift the frame-number → timestamp mapping labels are put on.
             guard let pixelBuffer = sample.imageBuffer else { continue }
             times.append(time)
-            // 1 ms slack so 29.97 fps footage still lands on every 2nd frame.
-            guard time + 0.001 >= nextDue else { continue }
-            nextDue = nextDue.isFinite ? max(nextDue + step, time + step / 2) : time + step
+            guard sampler?.take(time) ?? true else { continue }
             try body(VideoFrame(pixelBuffer: pixelBuffer, time: time, orientation: orientation))
         }
         if reader.status == .failed { throw ReadError.cannotRead(url, reader.error) }
@@ -60,13 +60,5 @@ struct VideoFrameReader {
         case 180, -180: .down
         default: .up
         }
-    }
-
-    // Even dimensions with the short side at shortSide; nil if the video is already that small.
-    static func scaledSize(_ size: CGSize, shortSide: Int) -> (width: Int, height: Int)? {
-        let scale = Double(shortSide) / Double(min(size.width, size.height))
-        guard scale < 1 else { return nil }
-        func even(_ value: Double) -> Int { Int((value * scale / 2).rounded()) * 2 }
-        return (even(size.width), even(size.height))
     }
 }

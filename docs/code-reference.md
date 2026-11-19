@@ -434,10 +434,18 @@ Output type of the ShotDetector framework (spec §4). The framework must never i
 The detector boundary (spec §4, ADR 0010).
 - `ShotDetecting`: `mutating process(_:) -> [ShotEvent]` takes frames in time order and returns shots confirmed on that frame; `mutating finish() -> [ShotEvent]` flushes at end of stream (default `[]`)
 
+## ShotDetector/FrameSampler.swift
+Timestamp sampling shared by the camera pipeline and the eval decoder (ADR 0016).
+- `FrameSampler(frameRate:)`: `interval` (s, settable; #28 thermal seam); `take(_ time:) -> Bool` takes the first frame and then one per interval, with 1 ms slack. It resyncs after drops or pauses
+
 ## ShotDetector/VideoFrame.swift
 What detectors are fed.
 - `VideoFrame(pixelBuffer:time:orientation:)`: one downscaled frame; `time` in seconds (presentation time), `orientation` for Vision
 - `DetectorInput`: the frame contract for the camera pipeline and the eval harness: `frameRate` 15, `shortSide` 480, `pixelFormat` 420f
+- `DetectorInput.scaledSize(width:height:shortSide:)`: even size with the short side at `shortSide`; nil if already that small
+
+## RepsTests/FrameSamplerTests.swift
+60 fps takes every 4th frame, 30 and 29.97 fps every 2nd, a dropped due frame is replaced by the next, a longer interval applies at once, a pause restarts without a burst.
 
 ## RepsTests/RepsStoreTests.swift
 - `inMemoryContainerOpens`, `schemaHasEveryModel`, `schemaIsVersionOne`
@@ -557,7 +565,7 @@ The only AVFoundation code on the detector path; test target only.
 - `VideoFrameReader(url:frameRate:shortSide:)`: defaults from `DetectorInput`; `nil` = every frame / native size
 - `read(_ body:) async throws -> [Double]`: calls `body` per sampled frame; returns the PTS of every decoded frame by index
 - `orientation(from:)`: preferredTransform → `CGImagePropertyOrientation` (same as hitreg-ml `tools/extract`)
-- `scaledSize(_:shortSide:)`: even output size with the short side at `shortSide`, nil if already smaller
+- Samples with `FrameSampler`, sizes with `DetectorInput.scaledSize`
 
 ## DetectorEvalTests/Harness/EvalRunner.swift
 - `EvalRunner(window:frameRate:shortSide:)`: window defaults to 0.5 s
