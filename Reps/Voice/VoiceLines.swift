@@ -17,6 +17,7 @@ nonisolated enum VoiceLines {
     static let targetReached = "Target reached."  // PLACEHOLDER: minimums target callout (Q39)
     static let strictStop = "Stop. Block done."  // PLACEHOLDER: strict stop callout, F22 (Q39)
     static let planEnded = "End of plan."  // PLACEHOLDER: no-block-left callout (Q39)
+    static let capturePaused = "Paused."
 
     // announceCount silences only the count; block, stop and saved callouts always speak (Q40).
     static func phrases(for event: SessionEvent, announceCount: Bool) -> [Phrase] {
@@ -32,6 +33,8 @@ nonisolated enum VoiceLines {
             return [Phrase(text: planEnded, kind: .callout)]
         case .sessionSaved:
             return [Phrase(text: sessionSaved, kind: .callout)]
+        case .capturePaused:
+            return [Phrase(text: capturePaused, kind: .callout)]
         }
     }
 

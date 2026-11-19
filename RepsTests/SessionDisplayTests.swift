@@ -111,4 +111,13 @@ struct SessionDisplayTests {
             SessionDisplay.resumeMessage(title: "Free session", done: 1, mode: .putting)
                 == "Free session · 1 putt so far.")
     }
+
+    @Test func cameraNoteOnlyWhenThereIsNoPicture() {
+        #expect(SessionDisplay.cameraNote(.off) == nil)
+        #expect(SessionDisplay.cameraNote(.running) == nil)
+        let stopped: [CameraStatus] = [.interrupted, .unavailable, .denied, .restricted]
+        for status in stopped {
+            #expect(SessionDisplay.cameraNote(status) != nil)
+        }
+    }
 }

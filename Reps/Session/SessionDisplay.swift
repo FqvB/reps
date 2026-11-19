@@ -147,6 +147,18 @@ enum SessionDisplay {
         "\(title) · \(PlanSummary.reps(done, mode: mode)) so far."  // PLACEHOLDER: resume prompt copy
     }
 
+    // §6: why the camera area shows no picture; nil while it's live or not started. Counting by hand always works.
+    static func cameraNote(_ status: CameraStatus) -> String? {
+        // PLACEHOLDER: camera note copy
+        switch status {
+        case .off, .running: nil
+        case .interrupted: "Camera paused. Your count is kept."
+        case .unavailable: "Camera unavailable. Count with +1."
+        case .denied: "Camera is off. Count with +1, or allow it in Settings."
+        case .restricted: "Camera is restricted on this iPhone. Count with +1."
+        }
+    }
+
     private static func trimmed(_ text: String?) -> String? {
         guard let text = text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return nil }
         return text

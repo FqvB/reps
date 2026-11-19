@@ -10,4 +10,6 @@ nonisolated enum SessionEvent: Equatable, Sendable {
     case planEnded
     // Done saved the session (§5.7 "Done. Session saved."); not sent when finish() discards or the save fails.
     case sessionSaved
+    // Sent by CameraSession, not the controller: the system interrupted capture (§6).
+    case capturePaused
 }

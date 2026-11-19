@@ -16,7 +16,7 @@ App entry point; opens the SwiftData store and shows the root view.
 
 ## Reps/App/RootView.swift
 Root TabView (Plans, Library), the session host, and the onboarding gate.
-- `RootView`: owns one `SessionController` (made on first use); creates a `SpeechAnnouncer(speaker: SystemSpeaker())`, prepares it, and registers `handle` on the controller (#10); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`, reading the default camera angle from `AppSettings().cameraAngle(for:)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); shows `OnboardingView(permissions: DevicePermissions())` instead of the tabs while `AppSettings.hasCompletedOnboarding` is false (the resume prompt waits for the tabs); Library tab hosts `LibraryView` (#24)
+- `RootView`: owns one `SessionController` (made on first use); creates a `SpeechAnnouncer(speaker: SystemSpeaker())`, prepares it, and registers `handle` on the controller (#10); creates one `CameraSession(pipeline: CameraPipeline(), permissions: DevicePermissions(), onPaused:)` that sends `.capturePaused` through the announcer (#13); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`, reading the default camera angle from `AppSettings().cameraAngle(for:)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); shows `OnboardingView(permissions: DevicePermissions())` instead of the tabs while `AppSettings.hasCompletedOnboarding` is false (the resume prompt waits for the tabs); Library tab hosts `LibraryView` (#24)
 
 ## Reps/Model/ModelEnums.swift
 Stored and exported enums; raw values are frozen (ADR 0012).
@@ -99,6 +99,28 @@ Builds the SwiftData container for the app and tests.
 - `RepsStore.makeContainer(inMemory:) throws -> ModelContainer`: container over `RepsSchemaCurrent` with `RepsMigrationPlan`; `inMemory: true` for tests
 - `RepsStore.makeContainer(url:) throws -> ModelContainer`: same, at a given store file (tests reopen it to simulate a kill)
 
+## Reps/Camera/CaptureFormat.swift
+§5.6 format choice, pure.
+- `FormatCandidate`: width, height, maxFrameRate, isFullRange
+- `CaptureFormat.best(_:) -> Int?`: 1080p only; the slowest format reaching 60 fps, else the fastest; then 420f, then device order
+
+## Reps/Camera/FrameScaler.swift
+Detector copy of a camera frame (ADR 0016); confined to the pipeline queue.
+- `FrameScaler()`: failable (VideoToolbox sessions)
+- `quarterTurns(_ degrees:) -> Int`: 0...3 clockwise, snapped
+- `detectorBuffer(from:quarterTurns:) -> CVPixelBuffer?`: scale to `DetectorInput.scaledSize`, then rotate clockwise; always a pooled copy
+
+## Reps/Camera/CameraSession.swift
+Camera state for the session screen (§6, ADR 0014, ADR 0016).
+- `CameraStatus`: off, running, interrupted, unavailable, denied, restricted
+- `CameraRunning`: `captureSession`, `device`, `start(onStatus:)`, `stop()`
+- `CameraSession(pipeline:permissions:onPaused:)`: `status`; `start() async` (permission gate per ADR 0014; starts the pipeline unless running; safe to repeat); `stop()`; `receive(_:)` (ignored after stop; calls `onPaused` once per interruption)
+
+## Reps/Camera/CameraPipeline.swift
+§5.6/§6 capture (ADR 0016); build-only, checked on a device. Queues: `sessionQueue` (session state), `frameQueue` (frames), `detectorQueue`.
+- `CameraPipeline`: `captureSession`, `device` (back wide); `start(onStatus:)` configures once (input, 420f data output, angle 0, `CaptureFormat.best` at 60 fps, audio session untouched, notifications, rotation coordinator), then runs; `stop()`; `setSinks(sample:detector:)` (sample: every frame + `rotationDegrees`, on `frameQueue`; detector: upright 480p `VideoFrame` every 1/15 s on `detectorQueue`, skipped while busy); interruption -> `.interrupted`, ended -> `.running`, runtime error -> one restart on media-services reset, else `.unavailable`
+- `FormatCandidate.init(_ format: AVCaptureDevice.Format)`
+
 ## Reps/Session/SessionEvent.swift
 What the session engine tells the voice layer (#10); plain values, nonisolated.
 - `countChanged(done:target:)`: after every counted shot and every effective −1
@@ -106,6 +128,7 @@ What the session engine tells the voice layer (#10); plain values, nonisolated.
 - `blockChanged(clubName:target:done:)`: a block became active (start, resume, next, strip jump, strict auto-advance, club/tag change, −1 reopening a block)
 - `planEnded`: no block left to run; shots are ignored until a block is selected or the session ends
 - `sessionSaved`: Done saved the session; not sent when `finish()` discards or the save fails
+- `capturePaused`: sent by `CameraSession`, not the controller: the system interrupted capture (§6)
 
 ## Reps/Session/ClipFileRemoving.swift
 - `ClipFileRemoving`: `removeClip(fileName:sessionID:)`, `removeClips(sessionID:)` for `Documents/clips/<sessionId>/`; #22 supplies the real one
@@ -152,7 +175,7 @@ The session engine (spec §4, F2, F14, F16, F18, F21, F22, §6; ADR 0013). MainA
 ## Reps/Session/SessionDisplay.swift
 Copy and chip states for the session screen; pure values, unit-tested.
 - `BlockSnapshot(order:clubName:note:done:target:)`, `StripChip` (`id` = block order, `state` active/complete/pending, `isSelectable`), `NextBlockPrompt(title:message:)`
-- `SessionDisplay`: `dimDelay` (30 s), `title(planName:)`, `subtitle(mode:angle:)`, `angleTitle(_:)`, `blockTitle(clubName:note:mode:)` (putting uses the note), `countDetail(done:target:note:mode:)`, `stripChips(_:mode:activeOrder:canSelect:isStrict:)` (mirrors `SessionController.select`), `nextBlockPrompt(clubName:done:target:canComeBack:)` (nil at/over target), `elapsed(_:)`, `tagChoices(active:recent:limit:)`, `toggling(_:in:)`, `adding(_:to:)`, `resumeMessage(title:done:mode:)`
+- `SessionDisplay`: `dimDelay` (30 s), `title(planName:)`, `subtitle(mode:angle:)`, `angleTitle(_:)`, `blockTitle(clubName:note:mode:)` (putting uses the note), `countDetail(done:target:note:mode:)`, `stripChips(_:mode:activeOrder:canSelect:isStrict:)` (mirrors `SessionController.select`), `nextBlockPrompt(clubName:done:target:canComeBack:)` (nil at/over target), `elapsed(_:)`, `tagChoices(active:recent:limit:)`, `toggling(_:in:)`, `adding(_:to:)`, `resumeMessage(title:done:mode:)`, `cameraNote(_:)` (why the camera area has no picture; nil while running or off)
 
 ## Reps/Session/SummaryDisplay.swift
 Numbers and copy for the session summary (Figma 12, F23); pure values, unit-tested.
@@ -162,7 +185,7 @@ Numbers and copy for the session summary (Figma 12, F23); pure values, unit-test
 ## Reps/Voice/VoiceLines.swift
 Session event → spoken text (F6, §5.7); pure, nonisolated, English only (Q12).
 - `Phrase(text:kind:)`: `Kind` count (goes stale on a newer count) / callout (never dropped)
-- `VoiceLines.phrases(for:announceCount:) -> [Phrase]`: `sessionSaved`/`targetReached`/`strictStop`/`planEnded` line constants (all but `sessionSaved` PLACEHOLDER, Q39); `announceCount` silences only `.countChanged`; `TODO(#27)` tempo on the count
+- `VoiceLines.phrases(for:announceCount:) -> [Phrase]`: `sessionSaved`/`targetReached`/`strictStop`/`planEnded` line constants (all but `sessionSaved` PLACEHOLDER, Q39); `announceCount` silences only `.countChanged`; `capturePaused` -> "Paused." (callout); `TODO(#27)` tempo on the count
 - `count(_:)`: digits, so the synthesizer reads them as words
 - `block(clubName:target:done:)`: "9 iron. 30 reps." / "…1 rep." / untargeted "9 iron." / returning "9 iron. 12 of 30." (PLACEHOLDER, Q39)
 - `spokenClub(_:)`: `BagCatalog.key` wedge abbreviations (PW/GW/SW/LW) spelled out; everything else trimmed as stored
@@ -397,8 +420,11 @@ Styled after Figma 12.
 
 ## Reps/UI/Session/SessionView.swift
 Figma 03, 05, 14. The live session; reads and drives a `SessionController`.
-- `SessionView(controller:)`: nav (End → summary in place (Continue session / Done), title, mode · angle, elapsed), block strip (planned), club + tag chips (range modes), camera placeholder (#13), big count, −1/+1, Next block (asks first before target)
+- `SessionView(controller:camera:)`: starts the camera on `.task` and on every return to `.active`, stops it on disappear; nav (End → summary in place (Continue session / Done), title, mode · angle, elapsed), block strip (planned), club + tag chips (range modes), `cameraArea` (live `CameraPreview` while running, else the `cameraNote` with Open Settings when denied), big count, −1/+1, Next block (asks first before target)
 - `BlockSnapshot.init(_ result: BlockResult)`
+
+## Reps/UI/Session/CameraPreview.swift
+- `CameraPreview(session:device:)`: preview layer (aspect fill), angle from its own `RotationCoordinator` (KVO on main)
 
 ## Reps/UI/Session/SessionSummaryView.swift
 Figma 12. Shown by `SessionView` on End.
@@ -434,10 +460,28 @@ Output type of the ShotDetector framework (spec §4). The framework must never i
 The detector boundary (spec §4, ADR 0010).
 - `ShotDetecting`: `mutating process(_:) -> [ShotEvent]` takes frames in time order and returns shots confirmed on that frame; `mutating finish() -> [ShotEvent]` flushes at end of stream (default `[]`)
 
+## ShotDetector/FrameSampler.swift
+Timestamp sampling shared by the camera pipeline and the eval decoder (ADR 0016).
+- `FrameSampler(frameRate:)`: `interval` (s, settable; #28 thermal seam); `take(_ time:) -> Bool` takes the first frame and then one per interval, with 1 ms slack. It resyncs after drops or pauses
+
 ## ShotDetector/VideoFrame.swift
 What detectors are fed.
 - `VideoFrame(pixelBuffer:time:orientation:)`: one downscaled frame; `time` in seconds (presentation time), `orientation` for Vision
 - `DetectorInput`: the frame contract for the camera pipeline and the eval harness: `frameRate` 15, `shortSide` 480, `pixelFormat` 420f
+- `DetectorInput.scaledSize(width:height:shortSide:)`: even size with the short side at `shortSide`; nil if already that small
+
+## RepsTests/FrameSamplerTests.swift
+60 fps takes every 4th frame, 30 and 29.97 fps every 2nd, a dropped due frame is replaced by the next, a longer interval applies at once, a pause restarts without a burst.
+
+## RepsTests/CaptureFormatTests.swift
+1080p60 beats other sizes and rates, slow-mo skipped, fastest 1080p fallback, 420f wins ties on rate, rate beats 420f, device order, nil without 1080p.
+
+## RepsTests/FrameScalerTests.swift
+`quarterTurns` snap and wrap, output sizes and 420f for 0-3 turns, turns are clockwise, small frames are copied.
+
+## RepsTests/CameraSessionTests.swift
+- `FakeCamera`: `CameraRunning` that counts starts and stops
+- Granted starts without asking, undetermined asks then starts, denied/restricted never ask, granting in Settings starts on return, `.running` isn't restarted but `.unavailable` is, "Paused." once per interruption, late statuses after `stop()` ignored
 
 ## RepsTests/RepsStoreTests.swift
 - `inMemoryContainerOpens`, `schemaHasEveryModel`, `schemaIsVersionOne`
@@ -489,7 +533,7 @@ Bag order, dedupe, off-bag current club.
 In-memory store: create, round trip, edit in place with renumbering, removed blocks keep result snapshots, duplicate deep copy, delete keeps sessions, last done.
 
 ## RepsTests/SessionDisplayTests.swift
-Session copy, strip chip states and selectability, Next block prompt, elapsed clock, tag choices, resume message.
+Session copy, strip chip states and selectability, Next block prompt, elapsed clock, tag choices, resume message, camera note only when there is no picture.
 
 ## RepsTests/SessionLogDisplayTests.swift
 Log sections and order, row and detail copy (planned, putting, free), percent cap, durations (en_US, UTC).
@@ -514,7 +558,7 @@ Continue/finish titles, status pills, camera note, features.
 Default bag seeding: empty store, second run, existing bag untouched.
 
 ## RepsTests/VoiceLinesTests.swift
-Count text, announceCount gating, block callout wording (targeted/single/returning/untargeted), wedge names, target-reached strict vs minimums, plan end, session saved, callouts always speak with announceCount off.
+Count text, announceCount gating, block callout wording (targeted/single/returning/untargeted), wedge names, target-reached strict vs minimums, plan end, session saved, capture paused, callouts always speak with announceCount off.
 
 ## RepsTests/SpeechAnnouncerTests.swift
 - `FakeSpeaker`: records spoken text, stop/prepare counts and each line's `finished` closure
@@ -557,7 +601,7 @@ The only AVFoundation code on the detector path; test target only.
 - `VideoFrameReader(url:frameRate:shortSide:)`: defaults from `DetectorInput`; `nil` = every frame / native size
 - `read(_ body:) async throws -> [Double]`: calls `body` per sampled frame; returns the PTS of every decoded frame by index
 - `orientation(from:)`: preferredTransform → `CGImagePropertyOrientation` (same as hitreg-ml `tools/extract`)
-- `scaledSize(_:shortSide:)`: even output size with the short side at `shortSide`, nil if already smaller
+- Samples with `FrameSampler`, sizes with `DetectorInput.scaledSize`
 
 ## DetectorEvalTests/Harness/EvalRunner.swift
 - `EvalRunner(window:frameRate:shortSide:)`: window defaults to 0.5 s

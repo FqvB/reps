@@ -11,13 +11,14 @@ struct VideoFrameReaderTests {
         (CGSize(width: 1280, height: 720), 854, 480),
     ])
     func scaledSizeKeepsAspectWithEvenSides(size: CGSize, width: Int, height: Int) throws {
-        let scaled = try #require(VideoFrameReader.scaledSize(size, shortSide: 480))
+        let scaled = try #require(
+            DetectorInput.scaledSize(width: Int(size.width), height: Int(size.height), shortSide: 480))
         #expect(scaled.width == width)
         #expect(scaled.height == height)
     }
 
     @Test func smallVideoIsNotScaled() {
-        #expect(VideoFrameReader.scaledSize(CGSize(width: 640, height: 480), shortSide: 480) == nil)
+        #expect(DetectorInput.scaledSize(width: 640, height: 480, shortSide: 480) == nil)
     }
 
     @Test func orientationFollowsRotation() {
