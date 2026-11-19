@@ -5,6 +5,7 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor(\BagClub.sortOrder), SortDescriptor(\BagClub.name)]) private var clubs: [BagClub]
     @State private var sessions: SessionController?
+    @State private var camera: CameraSession?
     @State private var pendingResume: PracticeSession?
     @State private var startFailed = false
     @AppStorage(AppSettings.Key.hasCompletedOnboarding) private var hasCompletedOnboarding =
@@ -32,7 +33,7 @@ struct RootView: View {
         .tint(Theme.accent)
         // Driven by the controller: finish() or discard() clears the session and closes the cover.
         .fullScreenCover(isPresented: Binding(get: { isInSession }, set: { _ in })) {
-            if let sessions { SessionView(controller: sessions) }
+            if let sessions, let camera { SessionView(controller: sessions, camera: camera) }
         }
         .task { offerResume() }
         .alert(
@@ -62,6 +63,10 @@ struct RootView: View {
         let announcer = SpeechAnnouncer(speaker: SystemSpeaker())
         announcer.prepare()
         made.addEventHandler { announcer.handle($0) }
+        // One capture session for the app's lifetime; SessionView starts and stops it (#13).
+        camera = CameraSession(
+            pipeline: CameraPipeline(), permissions: DevicePermissions(), onPaused: { announcer.handle(.capturePaused) }
+        )
         // TODO(#22): pass the real ClipFileRemoving once clips exist.
         sessions = made
         return made

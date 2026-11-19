@@ -4,13 +4,13 @@ Content to supply (copy, icons, images) or confirm. Every spot is marked `// PLA
 
 | File | Line | What |
 |---|---|---|
-| `Reps/App/RootView.swift` | 25 | Plans tab icon |
-| `Reps/App/RootView.swift` | 28 | Library tab icon |
-| `Reps/App/RootView.swift` | 39 | resume prompt copy |
-| `Reps/App/RootView.swift` | 44 | decline button copy |
-| `Reps/App/RootView.swift` | 52 | start error copy (#29) |
-| `Reps/App/RootView.swift` | 79 | free-session club with an empty bag |
-| `Reps/App/RootView.swift` | 81 | free sessions start in Range mode until there's a mode choice (Q28). |
+| `Reps/App/RootView.swift` | 26 | Plans tab icon |
+| `Reps/App/RootView.swift` | 29 | Library tab icon |
+| `Reps/App/RootView.swift` | 40 | resume prompt copy |
+| `Reps/App/RootView.swift` | 45 | decline button copy |
+| `Reps/App/RootView.swift` | 53 | start error copy (#29) |
+| `Reps/App/RootView.swift` | 84 | free-session club with an empty bag |
+| `Reps/App/RootView.swift` | 86 | free sessions start in Range mode until there's a mode choice (Q28). |
 | `Reps/Library/ClipPlayback.swift` | 42 | §5.8 cuts [impact − 3 s, impact + 2 s], so impact is assumed 3 s in. TODO(#22): store the real offset. |
 | `Reps/Library/LibraryDisplay.swift` | 103 | tile date copy |
 | `Reps/Library/LibraryDisplay.swift` | 130 | undo toast copy |
@@ -24,6 +24,7 @@ Content to supply (copy, icons, images) or confirm. Every spot is marked `// PLA
 | `Reps/Plans/PlanLibrary.swift` | 63 | duplicate naming |
 | `Reps/Plans/PlanSummary.swift` | 31 | copy for a plan never run |
 | `Reps/Session/SessionDisplay.swift` | 147 | resume prompt copy |
+| `Reps/Session/SessionDisplay.swift` | 152 | camera note copy |
 | `Reps/Session/SessionDisplay.swift` | 66 | free-session label under the count |
 | `Reps/Session/SummaryDisplay.swift` | 129 | no tempo yet (#27) or putting |
 | `Reps/Session/SummaryDisplay.swift` | 136 | sub-minute duration copy |
@@ -83,13 +84,12 @@ Content to supply (copy, icons, images) or confirm. Every spot is marked `// PLA
 | `Reps/UI/Session/FreeClubSheet.swift` | 24 | free-session club sheet title |
 | `Reps/UI/Session/FreeClubSheet.swift` | 43 | custom club alert copy (same as #7) |
 | `Reps/UI/Session/SessionScreenGuard.swift` | 7 | dim strength (black overlay; the spec gives no level) |
-| `Reps/UI/Session/SessionView.swift` | 191 | no block left to run |
-| `Reps/UI/Session/SessionView.swift` | 194 | no block left hint |
-| `Reps/UI/Session/SessionView.swift` | 41 | new-tag alert copy |
-| `Reps/UI/Session/SessionView.swift` | 80 | camera preview (#13) |
+| `Reps/UI/Session/SessionView.swift` | 222 | no block left to run |
+| `Reps/UI/Session/SessionView.swift` | 225 | no block left hint |
+| `Reps/UI/Session/SessionView.swift` | 52 | new-tag alert copy |
 | `Reps/UI/Settings/SettingsRows.swift` | 56 | Figma draws "›" as text |
 | `Reps/UI/Settings/SettingsView.swift` | 73 | Guidance (F26) is later; the row is inert. |
 | `Reps/Voice/VoiceLines.swift` | 17 | minimums target callout (Q39) |
 | `Reps/Voice/VoiceLines.swift` | 18 | strict stop callout, F22 (Q39) |
 | `Reps/Voice/VoiceLines.swift` | 19 | no-block-left callout (Q39) |
-| `Reps/Voice/VoiceLines.swift` | 48 | returning-block callout (Q39) |
+| `Reps/Voice/VoiceLines.swift` | 51 | returning-block callout (Q39) |

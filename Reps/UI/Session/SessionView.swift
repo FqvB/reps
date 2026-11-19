@@ -1,9 +1,14 @@
 import SwiftData
 import SwiftUI
+import UIKit
 
-// Figma 03 (range), 05 (putting), 14 (next block early). Manual counting only; the camera arrives with #13.
+// Figma 03 (range), 05 (putting), 14 (next block early). Manual counting works whatever the camera does.
 struct SessionView: View {
     let controller: SessionController
+    let camera: CameraSession
+
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openURL) private var openURL
 
     @Query(sort: \PracticeSession.startedAt, order: .reverse) private var sessions: [PracticeSession]
     @State private var nextPrompt: NextBlockPrompt?
@@ -27,6 +32,12 @@ struct SessionView: View {
             }
         }
         .sessionScreenGuard()
+        .task { await camera.start() }
+        .onDisappear { camera.stop() }
+        // §6: capture resumes when the app is back in front; also re-reads a permission changed in Settings.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await camera.start() } }
+        }
         .alert(
             nextPrompt?.title ?? "",
             isPresented: Binding(get: { nextPrompt != nil }, set: { if !$0 { nextPrompt = nil } }),
@@ -77,14 +88,7 @@ struct SessionView: View {
                     .padding(.top, controller.isFreeSession ? 10 : 6)
                     .padding(.bottom, 10)
             }
-            // PLACEHOLDER: camera preview (#13)
-            RoundedRectangle(cornerRadius: Theme.Radius.preview)
-                .fill(Theme.fill)
-                .overlay {
-                    Label("Camera", systemImage: "camera")
-                        .font(Theme.Typography.footnote)
-                        .foregroundStyle(Theme.secondaryText)
-                }
+            cameraArea
                 .frame(height: session.mode == .putting ? 150 : 190)
                 .padding(.horizontal, Theme.Spacing.gutter)
             count(session)
@@ -98,6 +102,33 @@ struct SessionView: View {
             }
         }
         .background(Theme.background)
+    }
+
+    // The live preview while capture runs; otherwise why it stopped (§6).
+    private var cameraArea: some View {
+        RoundedRectangle(cornerRadius: Theme.Radius.preview)
+            .fill(Theme.fill)
+            .overlay {
+                if camera.status == .running {
+                    CameraPreview(session: camera.pipeline.captureSession, device: camera.pipeline.device)
+                }
+            }
+            .clipShape(.rect(cornerRadius: Theme.Radius.preview))
+            .overlay {
+                if let note = SessionDisplay.cameraNote(camera.status) {
+                    VStack(spacing: 8) {
+                        Text(note)
+                            .font(Theme.Typography.footnote)
+                            .foregroundStyle(Theme.secondaryText)
+                            .multilineTextAlignment(.center)
+                        if camera.status == .denied, let url = URL(string: UIApplication.openSettingsURLString) {
+                            Button("Open Settings") { openURL(url) }
+                                .font(Theme.Typography.footnote)
+                        }
+                    }
+                    .padding(Theme.Spacing.gutter)
+                }
+            }
     }
 
     private func header(_ session: PracticeSession) -> some View {
@@ -273,7 +304,9 @@ extension BlockSnapshot {
         let controller = SessionController(context: container.mainContext)
         let plan = try! container.mainContext.fetch(FetchDescriptor<PracticePlan>()).first { $0.name == "Wedge day" }!
         try! controller.start(plan: plan, cameraAngle: .faceOn)
-        return SessionView(controller: controller)
-            .modelContainer(container)
+        return SessionView(
+            controller: controller, camera: CameraSession(pipeline: CameraPipeline(), permissions: DevicePermissions())
+        )
+        .modelContainer(container)
     }
 #endif

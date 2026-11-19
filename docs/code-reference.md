@@ -16,7 +16,7 @@ App entry point; opens the SwiftData store and shows the root view.
 
 ## Reps/App/RootView.swift
 Root TabView (Plans, Library), the session host, and the onboarding gate.
-- `RootView`: owns one `SessionController` (made on first use); creates a `SpeechAnnouncer(speaker: SystemSpeaker())`, prepares it, and registers `handle` on the controller (#10); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`, reading the default camera angle from `AppSettings().cameraAngle(for:)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); shows `OnboardingView(permissions: DevicePermissions())` instead of the tabs while `AppSettings.hasCompletedOnboarding` is false (the resume prompt waits for the tabs); Library tab hosts `LibraryView` (#24)
+- `RootView`: owns one `SessionController` (made on first use); creates a `SpeechAnnouncer(speaker: SystemSpeaker())`, prepares it, and registers `handle` on the controller (#10); creates one `CameraSession(pipeline: CameraPipeline(), permissions: DevicePermissions(), onPaused:)` that sends `.capturePaused` through the announcer (#13); Start hooks call `start(plan:cameraAngle:)` / `startFree(...)`, reading the default camera angle from `AppSettings().cameraAngle(for:)`; full-screen `SessionView` while `controller.session != nil`; launch "Resume session?" via `activeSession(in:)` (Resume, or "End it" = resume + finish, Q25 default); shows `OnboardingView(permissions: DevicePermissions())` instead of the tabs while `AppSettings.hasCompletedOnboarding` is false (the resume prompt waits for the tabs); Library tab hosts `LibraryView` (#24)
 
 ## Reps/Model/ModelEnums.swift
 Stored and exported enums; raw values are frozen (ADR 0012).
@@ -175,7 +175,7 @@ The session engine (spec §4, F2, F14, F16, F18, F21, F22, §6; ADR 0013). MainA
 ## Reps/Session/SessionDisplay.swift
 Copy and chip states for the session screen; pure values, unit-tested.
 - `BlockSnapshot(order:clubName:note:done:target:)`, `StripChip` (`id` = block order, `state` active/complete/pending, `isSelectable`), `NextBlockPrompt(title:message:)`
-- `SessionDisplay`: `dimDelay` (30 s), `title(planName:)`, `subtitle(mode:angle:)`, `angleTitle(_:)`, `blockTitle(clubName:note:mode:)` (putting uses the note), `countDetail(done:target:note:mode:)`, `stripChips(_:mode:activeOrder:canSelect:isStrict:)` (mirrors `SessionController.select`), `nextBlockPrompt(clubName:done:target:canComeBack:)` (nil at/over target), `elapsed(_:)`, `tagChoices(active:recent:limit:)`, `toggling(_:in:)`, `adding(_:to:)`, `resumeMessage(title:done:mode:)`
+- `SessionDisplay`: `dimDelay` (30 s), `title(planName:)`, `subtitle(mode:angle:)`, `angleTitle(_:)`, `blockTitle(clubName:note:mode:)` (putting uses the note), `countDetail(done:target:note:mode:)`, `stripChips(_:mode:activeOrder:canSelect:isStrict:)` (mirrors `SessionController.select`), `nextBlockPrompt(clubName:done:target:canComeBack:)` (nil at/over target), `elapsed(_:)`, `tagChoices(active:recent:limit:)`, `toggling(_:in:)`, `adding(_:to:)`, `resumeMessage(title:done:mode:)`, `cameraNote(_:)` (why the camera area has no picture; nil while running or off)
 
 ## Reps/Session/SummaryDisplay.swift
 Numbers and copy for the session summary (Figma 12, F23); pure values, unit-tested.
@@ -420,8 +420,11 @@ Styled after Figma 12.
 
 ## Reps/UI/Session/SessionView.swift
 Figma 03, 05, 14. The live session; reads and drives a `SessionController`.
-- `SessionView(controller:)`: nav (End → summary in place (Continue session / Done), title, mode · angle, elapsed), block strip (planned), club + tag chips (range modes), camera placeholder (#13), big count, −1/+1, Next block (asks first before target)
+- `SessionView(controller:camera:)`: starts the camera on `.task` and on every return to `.active`, stops it on disappear; nav (End → summary in place (Continue session / Done), title, mode · angle, elapsed), block strip (planned), club + tag chips (range modes), `cameraArea` (live `CameraPreview` while running, else the `cameraNote` with Open Settings when denied), big count, −1/+1, Next block (asks first before target)
 - `BlockSnapshot.init(_ result: BlockResult)`
+
+## Reps/UI/Session/CameraPreview.swift
+- `CameraPreview(session:device:)`: preview layer (aspect fill), angle from its own `RotationCoordinator` (KVO on main)
 
 ## Reps/UI/Session/SessionSummaryView.swift
 Figma 12. Shown by `SessionView` on End.
@@ -530,7 +533,7 @@ Bag order, dedupe, off-bag current club.
 In-memory store: create, round trip, edit in place with renumbering, removed blocks keep result snapshots, duplicate deep copy, delete keeps sessions, last done.
 
 ## RepsTests/SessionDisplayTests.swift
-Session copy, strip chip states and selectability, Next block prompt, elapsed clock, tag choices, resume message.
+Session copy, strip chip states and selectability, Next block prompt, elapsed clock, tag choices, resume message, camera note only when there is no picture.
 
 ## RepsTests/SessionLogDisplayTests.swift
 Log sections and order, row and detail copy (planned, putting, free), percent cap, durations (en_US, UTC).
