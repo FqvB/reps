@@ -482,6 +482,12 @@ Finds round things in a luma image (ADR 0017); pure, stateless, buffer pixels wi
 - `BallLocator.Config`: `minRadius` 6, `maxRadius` 30, `edgeThreshold`, `radialCosine` 0.95, `maxPeaks` 24, `minCoverage` 0.8
 - `BallLocator(config:)`, `candidates(in:) -> [BallCandidate]`: Sobel edges on a 3×3 mean, gradient-direction circle vote, then an exact-ring coverage check per peak; squares, straight edges and flat areas give nothing
 
+## ShotDetector/PatchMatcher.swift
+NCC presence check for a locked ball (spec §5.2, ADR 0017).
+- `PatchMatcher(reference:centerX:centerY:halfSize:)`: stores the window `(2*halfSize+1)²`; nil if it doesn't fit in the image
+- `similarity(in:maxShift:step:) -> Double`: best NCC over offsets in `-maxShift...maxShift` (windows leaving the image are skipped; 0 if none fit)
+- `PatchMatcher.ncc(_:_:) -> Double`: normalised cross-correlation of two equal-size pixel arrays; 0 for a flat patch
+
 ## RepsTests/FrameSamplerTests.swift
 60 fps takes every 4th frame, 30 and 29.97 fps every 2nd, a dropped due frame is replaced by the next, a longer interval applies at once, a pause restarts without a burst.
 
@@ -496,6 +502,9 @@ Luma copy drops row padding, non-planar buffer is nil, crop copies the rect.
 
 ## RepsTests/BallLocatorTests.swift
 Finds discs of radius 6-28 (also against a lighter band and two at once); rejects squares, a straight edge, a flat image, and discs outside the radius range.
+
+## RepsTests/PatchMatcherTests.swift
+NCC is 1 for identical, -1 for inverted, 0 for flat; nil when the window leaves the image; a shifted disc still matches, a removed one doesn't.
 
 ## RepsTests/CameraSessionTests.swift
 - `FakeCamera`: `CameraRunning` that counts starts and stops
