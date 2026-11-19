@@ -52,12 +52,13 @@ struct VoiceLinesTests {
     @Test func planEndedAndSessionSaved() {
         #expect(texts(.planEnded) == ["End of plan."])
         #expect(texts(.sessionSaved) == ["Done. Session saved."])
+        #expect(texts(.capturePaused) == ["Paused."])
     }
 
     @Test func calloutsSpeakWithAnnounceCountOff() {
         let events: [SessionEvent] = [
             .targetReached(clubName: "9 iron", target: 30, isStrict: true),
-            .blockChanged(clubName: "9 iron", target: 30, done: 0), .planEnded, .sessionSaved,
+            .blockChanged(clubName: "9 iron", target: 30, done: 0), .planEnded, .sessionSaved, .capturePaused,
         ]
         for event in events {
             let phrases = VoiceLines.phrases(for: event, announceCount: false)

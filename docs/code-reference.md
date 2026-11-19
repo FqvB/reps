@@ -110,6 +110,17 @@ Detector copy of a camera frame (ADR 0016); confined to the pipeline queue.
 - `quarterTurns(_ degrees:) -> Int`: 0...3 clockwise, snapped
 - `detectorBuffer(from:quarterTurns:) -> CVPixelBuffer?`: scale to `DetectorInput.scaledSize`, then rotate clockwise; always a pooled copy
 
+## Reps/Camera/CameraSession.swift
+Camera state for the session screen (§6, ADR 0014, ADR 0016).
+- `CameraStatus`: off, running, interrupted, unavailable, denied, restricted
+- `CameraRunning`: `captureSession`, `device`, `start(onStatus:)`, `stop()`
+- `CameraSession(pipeline:permissions:onPaused:)`: `status`; `start() async` (permission gate per ADR 0014; starts the pipeline unless running; safe to repeat); `stop()`; `receive(_:)` (ignored after stop; calls `onPaused` once per interruption)
+
+## Reps/Camera/CameraPipeline.swift
+§5.6/§6 capture (ADR 0016); build-only, checked on a device. Queues: `sessionQueue` (session state), `frameQueue` (frames), `detectorQueue`.
+- `CameraPipeline`: `captureSession`, `device` (back wide); `start(onStatus:)` configures once (input, 420f data output, angle 0, `CaptureFormat.best` at 60 fps, audio session untouched, notifications, rotation coordinator), then runs; `stop()`; `setSinks(sample:detector:)` (sample: every frame + `rotationDegrees`, on `frameQueue`; detector: upright 480p `VideoFrame` every 1/15 s on `detectorQueue`, skipped while busy); interruption -> `.interrupted`, ended -> `.running`, runtime error -> one restart on media-services reset, else `.unavailable`
+- `FormatCandidate.init(_ format: AVCaptureDevice.Format)`
+
 ## Reps/Session/SessionEvent.swift
 What the session engine tells the voice layer (#10); plain values, nonisolated.
 - `countChanged(done:target:)`: after every counted shot and every effective −1
@@ -117,6 +128,7 @@ What the session engine tells the voice layer (#10); plain values, nonisolated.
 - `blockChanged(clubName:target:done:)`: a block became active (start, resume, next, strip jump, strict auto-advance, club/tag change, −1 reopening a block)
 - `planEnded`: no block left to run; shots are ignored until a block is selected or the session ends
 - `sessionSaved`: Done saved the session; not sent when `finish()` discards or the save fails
+- `capturePaused`: sent by `CameraSession`, not the controller: the system interrupted capture (§6)
 
 ## Reps/Session/ClipFileRemoving.swift
 - `ClipFileRemoving`: `removeClip(fileName:sessionID:)`, `removeClips(sessionID:)` for `Documents/clips/<sessionId>/`; #22 supplies the real one
@@ -173,7 +185,7 @@ Numbers and copy for the session summary (Figma 12, F23); pure values, unit-test
 ## Reps/Voice/VoiceLines.swift
 Session event → spoken text (F6, §5.7); pure, nonisolated, English only (Q12).
 - `Phrase(text:kind:)`: `Kind` count (goes stale on a newer count) / callout (never dropped)
-- `VoiceLines.phrases(for:announceCount:) -> [Phrase]`: `sessionSaved`/`targetReached`/`strictStop`/`planEnded` line constants (all but `sessionSaved` PLACEHOLDER, Q39); `announceCount` silences only `.countChanged`; `TODO(#27)` tempo on the count
+- `VoiceLines.phrases(for:announceCount:) -> [Phrase]`: `sessionSaved`/`targetReached`/`strictStop`/`planEnded` line constants (all but `sessionSaved` PLACEHOLDER, Q39); `announceCount` silences only `.countChanged`; `capturePaused` -> "Paused." (callout); `TODO(#27)` tempo on the count
 - `count(_:)`: digits, so the synthesizer reads them as words
 - `block(clubName:target:done:)`: "9 iron. 30 reps." / "…1 rep." / untargeted "9 iron." / returning "9 iron. 12 of 30." (PLACEHOLDER, Q39)
 - `spokenClub(_:)`: `BagCatalog.key` wedge abbreviations (PW/GW/SW/LW) spelled out; everything else trimmed as stored
@@ -464,6 +476,10 @@ What detectors are fed.
 ## RepsTests/FrameScalerTests.swift
 `quarterTurns` snap and wrap, output sizes and 420f for 0-3 turns, turns are clockwise, small frames are copied.
 
+## RepsTests/CameraSessionTests.swift
+- `FakeCamera`: `CameraRunning` that counts starts and stops
+- Granted starts without asking, undetermined asks then starts, denied/restricted never ask, granting in Settings starts on return, `.running` isn't restarted but `.unavailable` is, "Paused." once per interruption, late statuses after `stop()` ignored
+
 ## RepsTests/RepsStoreTests.swift
 - `inMemoryContainerOpens`, `schemaHasEveryModel`, `schemaIsVersionOne`
 - `schemaShapeIsPinned`: exact attribute and relationship name sets per entity, so a silent schema change fails loudly (ADR 0012)
@@ -539,7 +555,7 @@ Continue/finish titles, status pills, camera note, features.
 Default bag seeding: empty store, second run, existing bag untouched.
 
 ## RepsTests/VoiceLinesTests.swift
-Count text, announceCount gating, block callout wording (targeted/single/returning/untargeted), wedge names, target-reached strict vs minimums, plan end, session saved, callouts always speak with announceCount off.
+Count text, announceCount gating, block callout wording (targeted/single/returning/untargeted), wedge names, target-reached strict vs minimums, plan end, session saved, capture paused, callouts always speak with announceCount off.
 
 ## RepsTests/SpeechAnnouncerTests.swift
 - `FakeSpeaker`: records spoken text, stop/prepare counts and each line's `finished` closure
