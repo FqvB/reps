@@ -99,6 +99,17 @@ Builds the SwiftData container for the app and tests.
 - `RepsStore.makeContainer(inMemory:) throws -> ModelContainer`: container over `RepsSchemaCurrent` with `RepsMigrationPlan`; `inMemory: true` for tests
 - `RepsStore.makeContainer(url:) throws -> ModelContainer`: same, at a given store file (tests reopen it to simulate a kill)
 
+## Reps/Camera/CaptureFormat.swift
+§5.6 format choice, pure.
+- `FormatCandidate`: width, height, maxFrameRate, isFullRange
+- `CaptureFormat.best(_:) -> Int?`: 1080p only; the slowest format reaching 60 fps, else the fastest; then 420f, then device order
+
+## Reps/Camera/FrameScaler.swift
+Detector copy of a camera frame (ADR 0016); confined to the pipeline queue.
+- `FrameScaler()`: failable (VideoToolbox sessions)
+- `quarterTurns(_ degrees:) -> Int`: 0...3 clockwise, snapped
+- `detectorBuffer(from:quarterTurns:) -> CVPixelBuffer?`: scale to `DetectorInput.scaledSize`, then rotate clockwise; always a pooled copy
+
 ## Reps/Session/SessionEvent.swift
 What the session engine tells the voice layer (#10); plain values, nonisolated.
 - `countChanged(done:target:)`: after every counted shot and every effective −1
@@ -446,6 +457,12 @@ What detectors are fed.
 
 ## RepsTests/FrameSamplerTests.swift
 60 fps takes every 4th frame, 30 and 29.97 fps every 2nd, a dropped due frame is replaced by the next, a longer interval applies at once, a pause restarts without a burst.
+
+## RepsTests/CaptureFormatTests.swift
+1080p60 beats other sizes and rates, slow-mo skipped, fastest 1080p fallback, 420f wins ties on rate, rate beats 420f, device order, nil without 1080p.
+
+## RepsTests/FrameScalerTests.swift
+`quarterTurns` snap and wrap, output sizes and 420f for 0-3 turns, turns are clockwise, small frames are copied.
 
 ## RepsTests/RepsStoreTests.swift
 - `inMemoryContainerOpens`, `schemaHasEveryModel`, `schemaIsVersionOne`
