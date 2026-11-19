@@ -36,7 +36,11 @@ struct SessionView: View {
         .onDisappear { camera.stop() }
         // §6: capture resumes when the app is back in front; also re-reads a permission changed in Settings.
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await camera.start() } }
+            if phase == .active, !showSummary { Task { await camera.start() } }
+        }
+        // Nothing is counted after End, so the camera rests behind the summary.
+        .onChange(of: showSummary) { _, ended in
+            if ended { camera.stop() } else { Task { await camera.start() } }
         }
         .alert(
             nextPrompt?.title ?? "",

@@ -1195,6 +1195,9 @@ In the simulator, the session screen shows "Camera unavailable. Count with +1." 
 6. Phone flat on the ground, face-on putting setup: the preview angle is stable (Q44).
 7. End a session (Done) and start a second one: the preview comes back. The pipeline is reused for the app's lifetime, so a stuck stop/start would break every later session.
 8. Ten minutes of capture: the phone doesn't get noticeably warm with the detector sink unset (baseline for #28).
+9. Trigger an interruption (Siri or another camera app), then End and Done while interrupted: the green camera dot goes away and doesn't come back.
+10. Coming back from the background and starting a session: no visible hitch or slow first frame when the preview attaches. If there is one, keep `CameraPreview` attached for the whole screen and overlay the note instead (review item).
+11. Tap End: the green dot goes off behind the summary; Continue brings the preview back.
 
 ## Docs (in step 4 unless noted)
 

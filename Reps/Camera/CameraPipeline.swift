@@ -53,7 +53,8 @@ nonisolated final class CameraPipeline: NSObject, CameraRunning, @unchecked Send
     func stop() {
         sessionQueue.async { [self] in
             onStatus = nil
-            if captureSession.isRunning { captureSession.stopRunning() }
+            // Always: an interrupted session reports not running but would resume on its own (AVCaptureSession.h).
+            captureSession.stopRunning()
         }
     }
 
@@ -145,7 +146,7 @@ nonisolated final class CameraPipeline: NSObject, CameraRunning, @unchecked Send
     private func observeRotation(_ device: AVCaptureDevice) {
         let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: nil)
         self.coordinator = coordinator
-        // KVO arrives on the main queue (AVFoundation docs); .initial delivers the current angle.
+        // .initial fires synchronously on this queue, later changes on main; either way only frameQueue is touched.
         rotationObservation = coordinator.observe(
             \.videoRotationAngleForHorizonLevelCapture, options: [.initial, .new]
         ) { [weak self] coordinator, _ in
@@ -167,13 +168,9 @@ extension CameraPipeline: AVCaptureVideoDataOutputSampleBufferDelegate {
         sampleSink?(sampleBuffer, quarterTurns * 90)
         guard let detectorSink, let pixelBuffer = sampleBuffer.imageBuffer else { return }
         let time = sampleBuffer.presentationTimeStamp.seconds
-        guard sampler.take(time) else { return }
-        let claimed = detectorBusy.withLock { busy in
-            if busy { return false }
-            busy = true
-            return true
-        }
-        guard claimed else { return }
+        // Busy check first so a dropped frame doesn't use up its sampling slot. Only this queue sets busy.
+        guard !detectorBusy.withLock({ $0 }), sampler.take(time) else { return }
+        detectorBusy.withLock { $0 = true }
         guard let upright = scaler?.detectorBuffer(from: pixelBuffer, quarterTurns: quarterTurns) else {
             detectorBusy.withLock { $0 = false }
             return
