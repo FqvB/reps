@@ -470,6 +470,12 @@ What detectors are fed.
 - `DetectorInput`: the frame contract for the camera pipeline and the eval harness: `frameRate` 15, `shortSide` 480, `pixelFormat` 420f
 - `DetectorInput.scaledSize(width:height:shortSide:)`: even size with the short side at `shortSide`; nil if already that small
 
+## ShotDetector/LumaImage.swift
+Luma plane copied without row padding; what the locator and matcher read (ADR 0017).
+- `LumaImage(width:height:pixels:)`, `LumaImage(width:height:fill:)`: row-major `[UInt8]`; subscript `[x, y]`
+- `LumaImage(pixelBuffer:)`: plane 0 of a planar buffer; nil if not planar
+- `cropped(x:y:width:height:)`: copy of an in-bounds rect
+
 ## RepsTests/FrameSamplerTests.swift
 60 fps takes every 4th frame, 30 and 29.97 fps every 2nd, a dropped due frame is replaced by the next, a longer interval applies at once, a pause restarts without a burst.
 
@@ -478,6 +484,9 @@ What detectors are fed.
 
 ## RepsTests/FrameScalerTests.swift
 `quarterTurns` snap and wrap, output sizes and 420f for 0-3 turns, turns are clockwise, small frames are copied.
+
+## RepsTests/LumaImageTests.swift
+Luma copy drops row padding, non-planar buffer is nil, crop copies the rect.
 
 ## RepsTests/CameraSessionTests.swift
 - `FakeCamera`: `CameraRunning` that counts starts and stops
