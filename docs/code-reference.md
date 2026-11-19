@@ -479,7 +479,7 @@ Luma plane copied without row padding; what the locator and matcher read (ADR 00
 ## ShotDetector/BallLocator.swift
 Finds round things in a luma image (ADR 0017); pure, stateless, buffer pixels with a top-left origin.
 - `BallCandidate(x:y:radius:coverage:)`: centre and radius in px; `coverage` is the share of 16 sectors with a radial edge on the ring
-- `BallLocator.Config`: `minRadius` 6, `maxRadius` 30, `edgeThreshold`, `radialCosine` 0.95, `maxPeaks` 24, `minCoverage` 0.8
+- `BallLocator.Config`: `minRadius` 6, `maxRadius` 30, `edgeThreshold`, `radialCosine` 0.95, `maxPeaks` 24, `minCoverage` 0.75 (0.8 scored recall 0.55 on the putting clip)
 - `BallLocator(config:)`, `candidates(in:) -> [BallCandidate]`: Sobel edges on a 3×3 mean, gradient-direction circle vote, then an exact-ring coverage check per peak; squares, straight edges and flat areas give nothing
 
 ## ShotDetector/PatchMatcher.swift
@@ -668,3 +668,6 @@ Pure harness logic, no footage.
 
 ## DetectorEvalTests/OracleEvalTests.swift
 - `rangeTestSplit`, `putting`: the oracle scores recall 1, precision 1 and publishes `oracle-range` / `oracle-putting` reports
+
+## DetectorEvalTests/BallPresenceEvalTests.swift
+- `putting`: `BallPresenceDetector` on the putting clip, publishes `ball-presence-putting`; asserts floors recall >= 0.7, precision >= 0.8 (#21 sets the real gates). No range suite: that needs the feet region (#19)

@@ -22,7 +22,7 @@ public struct BallLocator: Sendable {
         public var edgeThreshold: Float = 60
         public var radialCosine: Float = 0.95
         public var maxPeaks = 24
-        public var minCoverage = 0.8
+        public var minCoverage = 0.75
         public init() {}
     }
 
