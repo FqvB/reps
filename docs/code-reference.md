@@ -476,6 +476,12 @@ Luma plane copied without row padding; what the locator and matcher read (ADR 00
 - `LumaImage(pixelBuffer:)`: plane 0 of a planar buffer; nil if not planar
 - `cropped(x:y:width:height:)`: copy of an in-bounds rect
 
+## ShotDetector/BallLocator.swift
+Finds round things in a luma image (ADR 0017); pure, stateless, buffer pixels with a top-left origin.
+- `BallCandidate(x:y:radius:coverage:)`: centre and radius in px; `coverage` is the share of 16 sectors with a radial edge on the ring
+- `BallLocator.Config`: `minRadius` 6, `maxRadius` 30, `edgeThreshold`, `radialCosine` 0.95, `maxPeaks` 24, `minCoverage` 0.8
+- `BallLocator(config:)`, `candidates(in:) -> [BallCandidate]`: Sobel edges on a 3×3 mean, gradient-direction circle vote, then an exact-ring coverage check per peak; squares, straight edges and flat areas give nothing
+
 ## RepsTests/FrameSamplerTests.swift
 60 fps takes every 4th frame, 30 and 29.97 fps every 2nd, a dropped due frame is replaced by the next, a longer interval applies at once, a pause restarts without a burst.
 
@@ -487,6 +493,9 @@ Luma plane copied without row padding; what the locator and matcher read (ADR 00
 
 ## RepsTests/LumaImageTests.swift
 Luma copy drops row padding, non-planar buffer is nil, crop copies the rect.
+
+## RepsTests/BallLocatorTests.swift
+Finds discs of radius 6-28 (also against a lighter band and two at once); rejects squares, a straight edge, a flat image, and discs outside the radius range.
 
 ## RepsTests/CameraSessionTests.swift
 - `FakeCamera`: `CameraRunning` that counts starts and stops
