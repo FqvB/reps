@@ -488,6 +488,12 @@ NCC presence check for a locked ball (spec §5.2, ADR 0017).
 - `similarity(in:maxShift:step:) -> Double`: best NCC over offsets in `-maxShift...maxShift` (windows leaving the image are skipped; 0 if none fit)
 - `PatchMatcher.ncc(_:_:) -> Double`: normalised cross-correlation of two equal-size pixel arrays; 0 for a flat patch
 
+## ShotDetector/BallPresenceDetector.swift
+Putting detector (spec §5.2/§5.5, ADRs 0008, 0011, 0017): finds the ball, locks, fires one `ShotEvent` when it's gone.
+- `BallPresenceDetector.Config`: locator config, `lockDelay` 1 s, `stillTolerance`, `radiusTolerance`, `trackMemory` 0.5 s, `clutterAge` 0.5 s, `patchScale` 1, `maxShift` 0.25, `presentThreshold` 0.75 (NCC), `absentHold` 0.3 s, `maxFrameGap` 1 s
+- `BallPresenceDetector(config:)`: `searchRegion` (normalised, top-left origin, default whole frame; only used while searching), `ball` (nil while searching), `similarity` (last NCC, nil while searching)
+- `process(_ frame: VideoFrame)`, `process(_ image: LumaImage, time:)`: searching locks on the first round track still for `lockDelay` (older static tracks become ignored spots); locked, NCC below threshold for `absentHold` emits one event at the exit time and searches again. A frame gap over `maxFrameGap` drops the lock, a size change resets everything
+
 ## RepsTests/FrameSamplerTests.swift
 60 fps takes every 4th frame, 30 and 29.97 fps every 2nd, a dropped due frame is replaced by the next, a longer interval applies at once, a pause restarts without a burst.
 
@@ -505,6 +511,9 @@ Finds discs of radius 6-28 (also against a lighter band and two at once); reject
 
 ## RepsTests/PatchMatcherTests.swift
 NCC is 1 for identical, -1 for inverted, 0 for flat; nil when the window leaves the image; a shifted disc still matches, a removed one doesn't.
+
+## RepsTests/BallPresenceDetectorTests.swift
+Synthetic frames: lock after 1 s, one event after 0.3 s absence at the exit time, short dropout ignored, re-lock and count again, static clutter never locks, old tracks at lock become clutter, a moving disc doesn't lock, size change and long gap reset, search region, pixel-buffer frames.
 
 ## RepsTests/CameraSessionTests.swift
 - `FakeCamera`: `CameraRunning` that counts starts and stops
